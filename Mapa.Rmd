@@ -1,0 +1,801 @@
+---
+title: "Analiza medijske prisutnosti Hrvatske Narodne Banke u digitalnom medijskom prostoru (2021. – 2023.)"
+author: ""
+date: "22. srpnja 2025."
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    code_folding: hide
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 12, fig.height = 7, dpi = 200)
+```
+
+
+
+
+
+
+```{r libraries}
+library(ggplot2)
+library(dplyr)
+library(scales) # Za ljepše formatiranje brojeva na osima
+library(patchwork) # Za elegantno spajanje više grafova
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(patchwork)
+library(ggrepel)
+
+```
+
+
+
+Uvod
+
+Ovaj dokument predstavlja analizu prisutnosti Hrvatske narodne banke (HNB) u digitalnom medijskom prostoru za razdoblje od 1. siječnja 2021. do 31. prosinca 2023. godine. Svrha analize jest pružiti sustavan pregled medijskog ekosustava u kojem se komuniciraju i interpretiraju teme vezane uz rad HNB-a.
+
+Analiza, temeljena na uzorku od preko 19.000 medijskih objava, usmjerena je na tri ključna područja:
+
+  -> Identifikacija dominantnih platformi na kojima se odvija diskurs o HNB-u.
+
+  -> Identifikacija ključnih medijskih aktera i njihova produktivnost.
+
+  -> Analiza dinamike utjecaja kroz metrike dosega i angažmana publike.
+
+Izvješće je strukturirano tako da polazi od makro-pregleda digitalnih platformi, prelazi na mikro-analizu najutjecajnijih medijskih izvora te završava sintezom u obliku "Mape utjecaja".
+
+```{r eval=FALSE}
+
+
+# create year variable
+dta <- readRDS("./hnb.rds") %>%
+  mutate(
+    DATE = as.Date(DATE), # Convert the column to Date class first
+    year = as.integer(format(DATE, "%Y"))
+  )
+
+# remove titkok from SOURCE_TYPE
+dta <- dta %>%
+  filter(SOURCE_TYPE != "tiktok") %>%
+  mutate(
+    SOURCE_TYPE = factor(SOURCE_TYPE, levels = c("web", "youtube", "facebook", "twitter", "reddit", "forum", "comment"))
+  ) %>%
+  #remove year 2024
+  filter(DATE >= as.Date("2021-01-01") & DATE < as.Date("2024-01-01")) %>%
+  filter(year != 2024)
+
+
+
+
+
+
+
+# 3. platform_summary
+platform_summary <- dta %>%
+  group_by(year, SOURCE_TYPE) %>%
+  summarise(
+    total_posts        = n(),
+    total_interactions = sum(INTERACTIONS, na.rm=TRUE),
+    total_reach        = sum(REACH, na.rm=TRUE)
+  ) %>%
+  ungroup()
+saveRDS(platform_summary, "./platform_summary.rds")
+
+
+# 4. proportions_summary
+proportions_summary <- platform_summary %>%
+  group_by(year) %>%
+  mutate(
+    post_share        = total_posts / sum(total_posts),
+    interaction_share = total_interactions / sum(total_interactions),
+    reach_share       = total_reach / sum(total_reach)
+  ) %>%
+  ungroup()
+saveRDS(proportions_summary, "./proportions_summary.rds")
+
+
+# 5. source_summary & top_sources_by_year
+source_summary <- dta %>%
+  filter(!is.na(FROM)) %>%
+  group_by(year, FROM) %>%
+  summarise(
+    productivity        = n(),
+    total_interactions  = sum(INTERACTIONS, na.rm=TRUE),
+    avg_engagement_rate = mean(ENGAGEMENT_RATE, na.rm=TRUE),
+    total_reach         = sum(REACH, na.rm=TRUE)
+  ) %>%
+  ungroup()
+saveRDS(source_summary, "./source_summary.rds")
+
+top_sources_by_year <- source_summary %>%
+  group_by(year) %>%
+  slice_max(order_by = total_interactions, n = 15) %>%
+  ungroup()
+
+
+
+saveRDS(top_sources_by_year, "./top_sources_by_year.rds")
+
+
+# 6. top_XX_sources for web/youtube/facebook
+for(pl in c("web","youtube","facebook")) {
+  df <- dta %>%
+    filter(SOURCE_TYPE == pl, !is.na(FROM)) %>%
+    group_by(FROM) %>%
+    summarise(
+      total_posts        = n(),
+      total_interactions = sum(INTERACTIONS, na.rm=TRUE),
+    total_reach        = sum(REACH,        na.rm=TRUE)
+    ) %>%
+    ungroup() %>%
+    slice_max(order_by = total_interactions, n = 20)
+
+  saveRDS(df,
+    file = sprintf("./top_%s_sources.rds", pl)
+  )
+}
+
+
+# 7. web_actors / youtube_actors / facebook_actors
+get_top_actors <- function(data, platform_filter) {
+  platform_data <- data %>%
+    filter(SOURCE_TYPE == platform_filter & !is.na(FROM)) %>%
+    group_by(FROM) %>%
+    summarise(
+      total_posts        = n(),
+      total_interactions = sum(INTERACTIONS, na.rm=TRUE),
+      total_reach        = sum(REACH, na.rm=TRUE)
+    ) %>% ungroup()
+
+  top_by_interactions <- slice_max(platform_data, order_by = total_interactions, n = 15)
+  top_by_reach        <- slice_max(platform_data, order_by = total_reach,       n = 15)
+  bind_rows(top_by_interactions, top_by_reach) %>%
+    distinct(FROM, .keep_all = TRUE)
+}
+
+for(pl in c("web","youtube","facebook")) {
+  actors <- get_top_actors(dta, pl)
+  saveRDS(actors,
+    file = sprintf("./%s_actors.rds", pl)
+  )
+}
+
+
+
+
+
+
+```
+
+```{r  eval=FALSE}
+platform_summary <- dta %>%
+  group_by(year, SOURCE_TYPE) %>%
+  summarise(
+    total_posts = n(),
+    total_interactions = sum(INTERACTIONS, na.rm = TRUE),
+    total_reach = sum(REACH, na.rm = TRUE) # Posebno korisno za YouTube/video
+  ) %>%
+  ungroup() %>%
+  arrange(year, desc(total_posts))
+
+# Pregled rezultata
+print(platform_summary, n = 20)
+```
+
+```{r eval=FALSE}
+source_summary <- dta %>%
+  filter(!is.na(FROM)) %>%
+  group_by(year, FROM) %>%
+  summarise(
+    productivity = n(), # Broj objava
+    total_interactions = sum(INTERACTIONS, na.rm = TRUE), # Ukupan angažman
+    avg_engagement_rate = mean(ENGAGEMENT_RATE, na.rm = TRUE), # Prosječna stopa angažmana
+    total_reach = sum(REACH, na.rm = TRUE) # Ukupan doseg
+  ) %>%
+  ungroup()
+
+# Identificiramo Top 15 izvora po godini na temelju ukupnih interakcija
+top_sources_by_year <- source_summary %>%
+  group_by(year) %>%
+  slice_max(order_by = total_interactions, n = 15) %>%
+  ungroup() %>%
+  arrange(year, desc(total_interactions))
+
+# Pregled rezultata
+print(top_sources_by_year, n = 60) # Prikazujemo više redaka da vidimo rezultate za sve godine
+```
+
+```{r eval=FALSE}
+# Koristimo 'df_all' koji smo kreirali u prvom koraku
+# (spojeni df_2021, df_2022, itd.)
+# Pretpostavljam da je taj objekt još uvijek u vašem R okruženju.
+
+# Filtriranje i agregacija za WEB portale
+top_web_sources <- dta %>%
+  filter(SOURCE_TYPE == "web" & !is.na(FROM)) %>%
+  group_by(FROM) %>%
+  summarise(
+    total_posts = n(),
+    total_interactions = sum(INTERACTIONS, na.rm = TRUE),
+    total_reach        = sum(REACH,        na.rm=TRUE)
+  ) %>%
+  ungroup() %>%
+  slice_max(order_by = total_interactions, n = 20) %>%
+  arrange(total_interactions) %>% # Sortiramo uzlazno za bolji vizualni prikaz u ggplotu
+  mutate(FROM = factor(FROM, levels = FROM)) # Pretvaramo 'FROM' u faktor da zadržimo redoslijed
+
+# Filtriranje i agregacija za YOUTUBE kanale
+top_youtube_sources <- dta %>%
+  filter(SOURCE_TYPE == "youtube" & !is.na(FROM)) %>%
+  group_by(FROM) %>%
+  summarise(
+    total_posts = n(),
+    total_interactions = sum(INTERACTIONS, na.rm = TRUE),
+    total_reach        = sum(REACH,        na.rm=TRUE)
+  ) %>%
+  ungroup() %>%
+  slice_max(order_by = total_interactions, n = 20) %>%
+  arrange(total_interactions) %>%
+  mutate(FROM = factor(FROM, levels = FROM))
+
+# Filtriranje i agregacija za FACEBOOK stranice
+top_facebook_sources <- dta %>%
+  filter(SOURCE_TYPE == "facebook" & !is.na(FROM)) %>%
+  group_by(FROM) %>%
+  summarise(
+    total_posts = n(),
+    total_interactions = sum(INTERACTIONS, na.rm = TRUE),
+    total_reach        = sum(REACH,        na.rm=TRUE)
+  ) %>%
+  ungroup() %>%
+  slice_max(order_by = total_interactions, n = 20) %>%
+  arrange(total_interactions) %>%
+  mutate(FROM = factor(FROM, levels = FROM))
+```
+
+```{r eval=FALSE}
+# 1) Filtriranje i agregacija po REACH za WEB portale
+top_web_sources_reach <- dta %>%
+  filter(SOURCE_TYPE == "web", !is.na(FROM)) %>%
+  group_by(FROM) %>%
+  summarise(
+    total_posts = n(),
+    total_reach = sum(REACH, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  slice_max(order_by = total_reach, n = 20) %>%
+  arrange(total_reach) %>%
+  mutate(FROM = factor(FROM, levels = FROM))
+
+# 2) ... za YOUTUBE kanale
+top_youtube_sources_reach <- dta %>%
+  filter(SOURCE_TYPE == "youtube", !is.na(FROM)) %>%
+  group_by(FROM) %>%
+  summarise(
+    total_posts = n(),
+    total_reach = sum(REACH, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  slice_max(order_by = total_reach, n = 20) %>%
+  arrange(total_reach) %>%
+  mutate(FROM = factor(FROM, levels = FROM))
+
+# 3) ... za FACEBOOK stranice
+top_facebook_sources_reach <- dta %>%
+  filter(SOURCE_TYPE == "facebook", !is.na(FROM)) %>%
+  group_by(FROM) %>%
+  summarise(
+    total_posts = n(),
+    total_reach = sum(REACH, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
+  slice_max(order_by = total_reach, n = 20) %>%
+  arrange(total_reach) %>%
+  mutate(FROM = factor(FROM, levels = FROM))
+
+```
+
+```{r eval=FALSE}
+
+
+# Funkcija za dohvaćanje najvažnijih aktera
+# Uzimamo top 15 po interakcijama I top 15 po dosegu, te ih spajamo
+# kako ne bismo propustili nekog tko je jak samo u jednoj dimenziji.
+get_top_actors <- function(data, platform_filter) {
+  
+  platform_data <- data %>%
+    filter(SOURCE_TYPE == platform_filter & !is.na(FROM)) %>%
+    group_by(FROM) %>%
+    summarise(
+      total_posts = n(),
+      total_interactions = sum(INTERACTIONS, na.rm = TRUE),
+      total_reach = sum(REACH, na.rm = TRUE)
+    ) %>%
+    ungroup()
+
+  # Ako nema podataka, vrati prazan dataframe
+  if(nrow(platform_data) == 0) return(platform_data)
+  
+  # Pronađi top 15 po interakcijama
+  top_by_interactions <- platform_data %>%
+    slice_max(order_by = total_interactions, n = 15)
+  
+  # Pronađi top 15 po dosegu
+  top_by_reach <- platform_data %>%
+    slice_max(order_by = total_reach, n = 15)
+    
+  # Spoji ih i ukloni duplikate
+  combined_top <- bind_rows(top_by_interactions, top_by_reach) %>%
+    distinct(FROM, .keep_all = TRUE)
+    
+  return(combined_top)
+}
+
+# Primijenimo funkciju na naše tri platforme
+web_actors <- get_top_actors(dta, "web")
+youtube_actors <- get_top_actors(dta, "youtube")
+facebook_actors <- get_top_actors(dta, "facebook")
+
+```
+
+
+```{r load-data}
+# load only the pre-computed tables
+platform_summary        <- readRDS("./platform_summary.rds")
+proportions_summary     <- readRDS("./proportions_summary.rds")
+source_summary          <- readRDS("./source_summary.rds")
+top_sources_by_year     <- readRDS("./top_sources_by_year.rds")
+
+top_web_sources         <- readRDS("./top_web_sources.rds")
+top_youtube_sources     <- readRDS("./top_youtube_sources.rds")
+top_facebook_sources    <- readRDS("./top_facebook_sources.rds")
+
+web_actors              <- readRDS("./web_actors.rds")
+youtube_actors          <- readRDS("./youtube_actors.rds")
+facebook_actors         <- readRDS("./facebook_actors.rds")
+
+# Definiramo paletu boja za konzistentnost
+platform_colors <- c(
+  "web" = "#1f77b4", "youtube" = "#d62728", "facebook" = "#3b5998",
+  "twitter" = "#1DA1F2", "reddit" = "#FF4500", "forum" = "#7f7f7f", "comment" = "#bcbd22"
+)
+```
+
+# I. Makro-analiza: Distribucija sadržaja i angažmana
+
+Prvi dio analize usmjeren je na kvantificiranje i usporedbu digitalnih platformi prema volumenu objava i ostvarenom angažmanu javnosti.
+
+#### **Dominacija internetskih portala**
+
+Analiza volumena medijskih objava potvrđuje da su internetski portali primarni kanal za distribuciju sadržaja o Hrvatskoj narodnoj banci. Njihova dominacija u produkciji očekivana je s obzirom na ulogu medija u prenošenju službenih priopćenja, odluka i izvješća.
+
+```{r plot-volume, fig.width=12, fig.height=8, dpi=300}
+
+plot_volume <- platform_summary %>%
+  # Sortiramo unutar svake godine da bi graf bio čitljiviji
+  arrange(year, total_posts) %>%
+  mutate(SOURCE_TYPE_ordered = factor(SOURCE_TYPE, levels = unique(SOURCE_TYPE))) %>%
+  ggplot(aes(x = total_posts, y = SOURCE_TYPE_ordered, fill = SOURCE_TYPE)) +
+  geom_col() +
+  geom_text(aes(label = comma(total_posts, accuracy = 1)), hjust = -0.1, size = 3, color = "black") +
+  facet_wrap(~year, scales = "free_y") +
+  scale_x_continuous(labels = label_number(suffix = " K", scale = 1e-3)) +
+  scale_fill_manual(values = platform_colors) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 16),
+    panel.grid.major.y = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(
+    title = "Broj objava po platformama (2021-2023)",
+    subtitle = "",
+    x = "Ukupan broj objava (u tisucama)",
+    y = "Tip platforme",
+    caption = "Napomena: Stupci su sortirani po volumenu."
+  )
+
+
+print(plot_volume)
+
+```
+
+#### **Uloga društvenih mreža i video platformi**
+
+
+Metrika angažmana (interakcija) pruža uvid u platforme na kojima se generira najaktivnija javna rasprava. Iako internetski portali prednjače po broju objava, platforme kao što su YouTube i Facebook ostvaruju značajan udio u ukupnim interakcijama. Time se potvrđuje da, dok web-portali služe kao primarni izvor informiranja, društvene mreže funkcioniraju kao glavne arene za javnu diskusiju.
+
+
+```{r plot-interaction}
+
+plot_interactions <- platform_summary %>%
+  filter(total_interactions > 0) %>%
+  arrange(year, total_interactions) %>%
+  mutate(SOURCE_TYPE_ordered = factor(SOURCE_TYPE, levels = unique(SOURCE_TYPE))) %>%
+  ggplot(aes(x = total_interactions, y = SOURCE_TYPE_ordered, fill = SOURCE_TYPE)) +
+  geom_col() +
+  geom_text(aes(label = comma(total_interactions, accuracy = 1)), hjust = -0.1, size = 3, color = "black") +
+  facet_wrap(~year, scales = "free_y") +
+  scale_x_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+  scale_fill_manual(values = platform_colors) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 16),
+    panel.grid.major.y = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(
+    title = "Ukupan broj interakcija na objave o HNB-u (2021–2023)",
+    x = "Interakcije (u milijunima)",
+    y = "Tip platforme",
+    caption = "Napomena: Stupci su sortirani po interakcijama. Prikazane su samo platforme s >0 interakcija."
+  )
+print(plot_interactions)
+
+
+
+```
+
+
+
+
+```{r eval=FALSE}
+plot_reach <- platform_summary %>%
+  arrange(year, total_reach) %>%
+  mutate(
+    SOURCE_TYPE_ordered = factor(SOURCE_TYPE, levels = unique(SOURCE_TYPE))
+  ) %>%
+  ggplot(aes(x = total_reach, y = SOURCE_TYPE_ordered, fill = SOURCE_TYPE)) +
+  geom_col() +
+  geom_text(
+    aes(label = comma(total_reach, accuracy = 1)),
+    hjust = -0.1, size = 3, color = "black"
+  ) +
+  facet_wrap(~year, scales = "free_y") +
+  # likewise, adjust scale/suffix if reach is in thousands vs. millions
+  scale_x_continuous(
+    labels = label_number(suffix = " M", scale = 1e-6)
+  ) +
+  scale_fill_manual(values = platform_colors) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position    = "none",
+    strip.text         = element_text(face = "bold", size = 16),
+    panel.grid.major.y = element_blank(),
+    axis.text.x        = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(
+    title    = "Ukupan doseg po platformama (2021–2023)",
+    x        = "Doseg (u milijunima)",
+    y        = "Tip platforme",
+    caption  = "Napomena: Stupci su sortirani po dosegu."
+  )
+
+print(plot_reach)
+```
+
+
+
+#### **Relativna važnost platformi u medijskom ekosustavu**
+
+Usporedbom relativnih udjela u objavama, interakcijama i dosegu uočava se asimetrija utjecaja. Internetski portali generiraju približno 80% sadržaja, no njihov udio u angažmanu i dosegu je razmjerno manji. Sadržaj objavljen na YouTubeu i Facebooku, iako manje brojan, u prosjeku ostvaruje veći odjek po objavi.
+
+
+```{r plot-shares}
+plot_share_posts <- proportions_summary %>%
+  ggplot(aes(x = year, y = post_share, fill = SOURCE_TYPE)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = percent_format()) +
+  scale_x_continuous(breaks = c(2021, 2022, 2023)) +
+  scale_fill_manual(values = platform_colors) +
+  theme_minimal(base_size = 14) +
+  labs(title = "Udio objava", x = "Godina", y = "Postotak")
+
+plot_share_interactions <- proportions_summary %>%
+  filter(total_interactions > 0) %>%
+  ggplot(aes(x = year, y = interaction_share, fill = SOURCE_TYPE)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = percent_format()) +
+  scale_x_continuous(breaks = c(2021, 2022, 2023)) +
+  scale_fill_manual(values = platform_colors, guide = "none") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Udio interakcija", x = "Godina", y = "Postotak")
+
+plot_share_reach <- proportions_summary %>%
+  filter(total_reach > 0) %>%
+  ggplot(aes(x = year, y = reach_share, fill = SOURCE_TYPE)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = percent_format()) +
+  scale_x_continuous(breaks = c(2021, 2022, 2023)) +
+  scale_fill_manual(values = platform_colors, guide = "none") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Udio dosega", x = "Godina", y = "Postotak")
+
+plot_combined_share <- (plot_share_posts + plot_share_interactions + plot_share_reach) +
+  plot_layout(guides = 'collect') +
+  plot_annotation(
+    title    = "Struktura digitalnog ekosustava (2021–2023)",
+    subtitle = "Usporedba udjela platformi u ukupnom broju objava, interakcija i dosega.",
+    caption  = "Web generira najviše sadržaja, ali YouTube i Facebook preuzimaju sve veći dio 'kolača' utjecaja."
+  )
+print(plot_combined_share)
+```
+
+
+
+# 2. Mikro pogled: Najutjecajniji akteri
+
+Drugi dio analize fokusira se na identifikaciju najutjecajnijih pojedinačnih medijskih izvora unutar tri ključne platforme: weba, YouTubea i Facebooka.
+
+#### **Pregled vodećih izvora prema ostvarenim interakcijama**
+
+Rangiranje aktera prema ukupnom broju interakcija ukazuje na specifičnu strukturu za svaku platformu:
+
+  -> Web: Dominiraju vodeći nacionalni mediji i specijalizirani poslovni portali.
+
+  -> YouTube: Ističu se kanali medijskih kuća, ekonomski podcasti i analitičari.
+
+  -> Facebook: Ekosustav je najraznolikiji i uključuje medijske kuće, političke aktere te stranice posvećene ekonomskim temama.
+
+Produktivnost (ukupan broj objava) ukazuje na različite strategije aktera – od onih koji se oslanjaju na visok volumen objava do onih koji ostvaruju utjecaj manjim brojem objava s visokim angažmanom.
+
+```{r plot-lollipops-interactions, fig.width=13, fig.height=10, dpi=500}
+create_top_source_plot <- function(data, platform_name, platform_color) {
+  data <- data %>% arrange(total_interactions) %>% mutate(FROM = factor(FROM, levels = FROM))
+  ggplot(data, aes(x = FROM, y = total_interactions)) +
+    geom_segment(aes(x = FROM, xend = FROM, y = 0, yend = total_interactions), color = "grey", linewidth = 0.5) +
+    geom_point(aes(size = total_posts), color = platform_color, alpha = 0.8) +
+    coord_flip() +
+    scale_y_continuous(labels = label_number(suffix = " K", scale = 1e-3)) +
+    scale_size_continuous(range = c(2, 10), name = "Broj objava") +
+    theme_light(base_size = 12) +
+    theme(
+      panel.grid.major.y = element_blank(), panel.border = element_blank(),
+      axis.ticks.y = element_blank(), legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    ) +
+    labs(title = platform_name, x = "", y = "Ukupne interakcije (u tisućama)")
+}
+
+plot_web <- create_top_source_plot(top_web_sources, "Web portali", "#1f77b4")
+plot_youtube <- create_top_source_plot(top_youtube_sources, "YouTube kanali", "#d62728")
+plot_facebook <- create_top_source_plot(top_facebook_sources, "Facebook stranice", "#3b5998")
+
+final_dashboard <- plot_web + plot_youtube + plot_facebook +
+  plot_annotation(
+    title = "Top 20 profila u digitalnom medijskom prostoru o HNB-u (2021-2023)",
+    subtitle = "Rangirano prema ukupnim interakcijama. Veličina točke predstavlja ukupan broj objava.",
+    caption = "Izvor: Analiza projekta 'Prikaz i analiza prisutnosti HNB-a u digitalnom medijskom prostoru'",
+    theme = theme(plot.title = element_text(size = 20, face = "bold"))
+  )
+print(final_dashboard)
+```
+
+
+
+```{r beautiful-viz, eval=FALSE}
+library(ggplot2)
+library(dplyr)
+library(scales)
+library(ggrepel)
+library(showtext)
+library(patchwork)
+
+# Load a Google font for extra polish
+font_add_google("Lato", "lato")
+showtext_auto()
+
+create_top_source_plot <- function(data, platform_name, platform_color) {
+  data <- data %>% 
+    arrange(total_interactions) %>% 
+    mutate(FROM = factor(FROM, levels = FROM))
+  
+  ggplot(data, aes(x = FROM, y = total_reach)) +
+    # subtle bars behind points
+    geom_col(fill = alpha(platform_color, 0.1), width = 0.6) +
+    # connector lines
+    geom_segment(aes(x = FROM, xend = FROM, y = 0, yend = total_reach),
+                 color = "grey80", size = 0.3) +
+    # main points
+    geom_point(aes(size = total_posts), color = platform_color, alpha = 0.9) +
+    # labels indicating count (in thousands)
+    geom_text_repel(aes(label = comma(total_reach, scale = 1e-3, suffix = "K")),
+                    nudge_x = 0.3, 
+                    direction = "y",
+                    hjust = 0,
+                    size = 3,
+                    family = "lato",
+                    segment.color = NA) +
+    coord_flip(expand = FALSE) +
+    scale_y_continuous(
+      expand = expansion(mult = c(0, .05)),
+      labels = label_number(scale = 1e-3, suffix = " K")
+    ) +
+    scale_size_continuous(range = c(3, 12), name = "Broj objava") +
+    labs(
+      title    = platform_name,
+      x        = NULL,
+      y        = "Ukupni doseg",
+      caption  = "Izvor: Analiza ‘Prikaz i analiza prisutnosti HNB-a’"
+    ) +
+    theme_minimal(base_family = "lato") +
+    theme(
+      plot.title           = element_text(size = 16, face = "bold", margin = margin(b = 8)),
+      plot.caption         = element_text(size = 8, color = "grey60", hjust = 1),
+      axis.title.y         = element_text(size = 10, face = "italic", margin = margin(r = 10)),
+      axis.text.y          = element_text(size = 10),
+      axis.text.x          = element_text(size = 9),
+      panel.grid.major.x   = element_line(color = "grey90", size = 0.4),
+      panel.grid.minor.x   = element_blank(),
+      panel.grid.major.y   = element_blank(),
+      legend.position      = "bottom",
+      legend.title         = element_text(size = 9),
+      legend.text          = element_text(size = 8)
+    )
+}
+
+# Combine plots
+plot_web <- create_top_source_plot(top_web_sources,     "Web portali",    "#1f77b4")
+plot_yt  <- create_top_source_plot(top_youtube_sources, "YouTube kanali", "#d62728")
+plot_fb  <- create_top_source_plot(top_facebook_sources,"Facebook",       "#3b5998")
+
+final_dashboard <- (plot_web | plot_yt | plot_fb) +
+  plot_annotation(
+    title    = "Top 20 profila u digitalnom prostoru o HNB-u (2021–2023)",
+    subtitle = "Rangirani prema ukupnom dosegu; velicina tocke = broj objava",
+    theme    = theme(
+      plot.title    = element_text(size = 22, face = "bold", family = "lato"),
+      plot.subtitle = element_text(size = 12, family = "lato", margin = margin(b = 12))
+    )
+  ) & theme(plot.margin = margin(15, 15, 15, 15))
+
+# Print it
+print(final_dashboard)
+
+```
+
+
+# III. Sinteza: Mapa utjecaja najvažnijih aktera
+
+Završni dio analize objedinjuje prethodne nalaze u jedinstvenom vizualnom prikazu. "Mapa utjecaja" pozicionira ključne aktere u dvodimenzionalnom prostoru definiranom angažmanom (os X) i dosegom (os Y). Ovaj pristup omogućuje klasifikaciju aktera prema prirodi njihovog utjecaja.
+
+Osi su prikazane na logaritamskoj skali radi bolje preglednosti širokog raspona vrijednosti. Na temelju pozicije, akteri se mogu svrstati u četiri arhetipa:
+
+  -> Divovi (gore desno): Akteri s visokim dosegom i visokim angažmanom.
+
+  -> Megafoni (gore lijevo): Akteri s visokim dosegom, ali nižim angažmanom.
+
+  -> Graditelji zajednica (dolje desno): Akteri s nižim dosegom, ali iznimno visokim angažmanom.
+
+  -> Nišni igrači (dolje lijevo): Akteri s umjerenim dosegom i angažmanom.
+
+Osi su na logaritamskoj skali kako bi se bolje prikazao širok raspon vrijednosti.
+
+
+```{r plot-actor-map}
+create_actor_map_plot <- function(data, platform_name, platform_color) {
+  if(nrow(data) < 2) { return(ggplot() + labs(title = paste("Nema dovoljno podataka za", platform_name)) + theme_void()) }
+  
+  median_interactions <- median(data$total_interactions, na.rm = TRUE)
+  median_reach <- median(data$total_reach, na.rm = TRUE)
+
+  ggplot(data, aes(x = total_interactions, y = total_reach)) +
+    geom_vline(xintercept = median_interactions, linetype = "dashed", color = "grey70") +
+    geom_hline(yintercept = median_reach, linetype = "dashed", color = "grey70") +
+    geom_point(aes(size = total_posts), color = platform_color, alpha = 0.7) +
+    geom_text_repel(aes(label = FROM), size = 3, max.overlaps = 15) +
+    scale_x_log10(labels = label_number(big.mark = ".", suffix = " K", scale = 1e-3)) +
+    scale_y_log10(labels = label_number(big.mark = ".", suffix = " M", scale = 1e-6)) +
+    scale_size_continuous(range = c(2, 12), name = "Broj objava") +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom") +
+    labs(
+      title = platform_name, x = "Ukupne interakcije (Log)", y = "Ukupan doseg (Log)"
+    )
+}
+
+plot_map_web <- create_actor_map_plot(web_actors, "Web Portali", "#1f77b4")
+plot_map_youtube <- create_actor_map_plot(youtube_actors, "YouTube Kanali", "#d62728")
+plot_map_facebook <- create_actor_map_plot(facebook_actors, "Facebook Stranice", "#3b5998")
+
+final_map_dashboard <- plot_map_web + plot_map_youtube + plot_map_facebook +
+  plot_annotation(
+    title = "Mapa utjecaja najvažnijih profila u raspravama o HNB-u (2021-2023)",
+    subtitle = "Usporedba dosega i angažmana. Veličina točke predstavlja produktivnost (broj objava).",
+    caption = "Izvor: Analiza projekta 'Prikaz i analiza prisutnosti HNB-a u digitalnom medijskom prostoru' | Osi su na logaritamskoj skali.",
+    theme = theme(plot.title = element_text(size = 20, face = "bold"))
+  ) & theme(plot.background = element_rect(fill = "white", color = NA))
+
+print(final_map_dashboard)
+```
+
+
+# Zaključak i sljedeći koraci
+
+Provedena analiza pruža kvantitativni temelj za razumijevanje digitalnog medijskog okruženja Hrvatske narodne banke. Glavni nalazi su:
+
+  -> Funkcionalna specijalizacija platformi: Utvrđena je jasna podjela između platformi za distribuciju informacija (web) i platformi za javnu raspravu (društvene mreže).
+
+  -> Diverzificiranost aktera: Ključni izvori utjecaja razlikuju se od platforme do platforme, što upućuje na segmentiranost publike i komunikacijskih kanala.
+
+  -> Višedimenzionalnost utjecaja: Učinkovitost medijskog aktera ovisi o ravnoteži između produktivnosti, dosega i sposobnosti poticanja angažmana.
+
+
+
+
+
+
+
+```{r eval= FALSE}
+
+create_top_source_plot_reach <- function(data, platform_name, platform_color) {
+  if (nrow(data) == 0) {
+    return(
+      ggplot() +
+        labs(title = paste("Nema dostupnih podataka za", platform_name)) +
+        theme_void()
+    )
+  }
+
+  # reorder FROM by reach
+  data <- data %>%
+    arrange(total_reach) %>%
+    mutate(FROM = factor(FROM, levels = FROM))
+
+  ggplot(data, aes(x = FROM, y = total_reach)) +
+    geom_segment(aes(x = FROM, xend = FROM, y = 0, yend = total_reach),
+                 color = "grey", linewidth = 0.5) +
+    geom_point(aes(size = total_posts), color = platform_color, alpha = 0.8) +
+    coord_flip() +
+    scale_y_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+    scale_size_continuous(range = c(2, 10), name = "Broj objava") +
+    theme_light(base_size = 12) +
+    theme(
+      panel.grid.major.y = element_blank(),
+      panel.border       = element_blank(),
+      axis.ticks.y       = element_blank(),
+      legend.position    = "bottom",
+      axis.text.x        = element_text(angle = 45, hjust = 1)
+    ) +
+    labs(
+      title = platform_name,
+      x     = "",
+      y     = "Ukupan doseg (u milijunima)"
+    )
+}
+
+
+
+
+# 2) Generate each plot from your reach–based tables
+plot_web_reach      <- create_top_source_plot_reach(top_web_sources,      "Web portali",     "#1f77b4")
+plot_youtube_reach  <- create_top_source_plot_reach(top_youtube_sources,  "YouTube kanali",  "#d62728")
+plot_facebook_reach <- create_top_source_plot_reach(top_facebook_sources, "Facebook stranice", "#3b5998")
+
+# 3) Combine into one dashboard
+final_reach_dashboard <- plot_web_reach + plot_youtube_reach + plot_facebook_reach +
+  plot_annotation(
+    title    = "Top 20 profila po dosegu u raspravama o HNB-u (2021–2023)",
+    subtitle = "Rangirano prema ukupnom dosegu. Veličina točke predstavlja broj objava.",
+    caption  = "Izvor: Analiza projekta 'Prikaz i analiza prisutnosti HNB-a u digitalnom medijskom prostoru'",
+    theme    = theme(plot.title = element_text(size = 20, face = "bold"))
+  )
+
+# 4) Print it
+print(final_reach_dashboard)
+
+
+```
+
+
+
+
+
+
+
