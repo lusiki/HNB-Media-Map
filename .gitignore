@@ -21,3 +21,6 @@ rad.json
 #Test results file
 TestResults.xml
 .Rproj.user
+
+hnb.rds
+croatian-set-ud-2.5-191206.udpipe

@@ -21,7 +21,7 @@ dta_sample <- dta %>%
   filter(nchar(FULL_TEXT) > 10) %>%
   slice_sample(n = 1000)
 
-model_path <- udpipe_download_model(language = "croatian-set")
+#model_path <- udpipe_download_model(language = "croatian-set")
 ud_model_hr <- udpipe_load_model(file = "croatian-set-ud-2.5-191206.udpipe")
 
 # Set up your parameters
@@ -37,7 +37,7 @@ udpipe_annotate_in_batches_and_save <- function(
     batch_size = 500,
     cores = 1,
     output_dir,
-    resume = FALSE
+    resume = TRUE
 ) {
 
   # Set the progress handler to display a detailed cli progress bar
