@@ -5,52 +5,39 @@
 
 
 
-# Analiza Medijskog Prostora Hrvatske Narodne Banke (2021-2023)
+# Analiza medijskog prostora Hrvatske Narodne Banke
 
-Ovaj repozitorij sadrži četverodijelnu analizu medijske prisutnosti i javne percepcije Hrvatske narodne banke (HNB). Projekt mapira ključne aktere, secira glavne teme, mjeri atmosferu rasprave i prati dinamične odjeke stvarnih događaja.
+OOvaj repozitorij sadrži sveobuhvatnu analizu medijske prisutnosti i javne percepcije Hrvatske narodne banke (HNB). Projekt predstavlja dubinsko istraživanje koje mapira ključne aktere, glavne teme, mjeri ton rasprave i analizira medijske odjeke značajnih događaja.
+Istraživanje se sastoji od četiri tematska izvješća koja su međusobno povezana i nadograđuju se jedan na drugi, pružajući postupno dublji uvid u strukturu, sadržaj i dinamiku online diskursa o središnjoj banci.
 
-Svako izvješće je interaktivno i gradi se na prethodnom, pružajući sve dublji uvid u strukturu, sadržaj i dinamiku online diskursa o središnjoj banci.
+## Podatci i metodologija
+Analiza predstavlja dio šireg projekta mapiranja medijskog prostora ključnih hrvatskih institucija.
+Izvor podataka: Baza podataka s preko 25 milijuna medijskih objava
+Vremenski okvir: 2021. –06/2024. godina
+Metodološki pristup: Kombinacija mrežne analize, obrade prirodnog jezika (NLP), tematskog modeliranja i analize sentimenta
+    
 
-## Četiri Faze Analize
+## Struktura istraživanja
 
 Ovdje možete pristupiti svakoj od četiri faze istraživanja.
 
 ### Faza 1: [Mapa Medijskog Ekosustava](https://raw.githack.com/lusiki/HNB-Media-Map/main/Mapa.html)
 
-  Odgovara na temeljna pitanja: TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. Analizira ključne aktere (od dužnosnika i političara do neovisnih analitičara), dominantne platforme i dinamiku njihovog utjecaja.
+Odgovara na pitanja TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. Analizira ključne aktere — od dužnosnika i političara do neovisnih analitičara — te identificira dominantne platforme i dinamiku njihovog utjecaja na javni diskurs.
 
-### Faza 2: Anatomija Diskursa
+### Faza 2: [Anatomija Diskursa]()
 
-  Istražuje O ČEMU se govori. Kroz tematsku analizu, izvješće identificira i mjeri ključne teme u raspravama o HNB-u, poput monetarne politike, uvođenja eura, financijske stabilnosti i javne percepcije.
+Istražuje O ČEMU se govori. Kroz detaljnu tematsku analizu identificira i kvantificira ključne teme u raspravama o HNB-u, uključujući monetarnu politiku, uvođenje eura, financijsku stabilnost i javnu percepciju institucije.
 
-### Faza 3: Atmosfera Diskursa
+### Faza 3: [Atmosfera Diskursa]()
 
-  Analizira KAKO se o HNB-u govori. Mjeri emocionalni ton (npr. stručan, kritičan, neutralan), razinu konflikta u jeziku i dominantne narativne okvire koji oblikuju javnu percepciju rada središnje banke.
+Analizira KAKO se o HNB-u govori. Mjeri emocionalni ton rasprave (stručan, kritičan, neutralan), razinu konflikta u jeziku te dominantne narativne okvire koji oblikuju javnu percepciju rada središnje banke.
 
-### Faza 4: Digitalni Odjeci
+### Faza 4: [Digitalni Odjeci]()
 
-  Proučava KADA i ZAŠTO se diskurs o HNB-u intenzivira. Modelira kako ključni događaji—poput promjene kamatnih stopa, objave prognoza o inflaciji ili uvođenja eura—utječu na volumen, atmosferu i fokus online rasprava.
-
-
+Proučava KADA i ZAŠTO se diskurs o HNB-u intenzivira. Modelira kako ključni događaji — poput promjene kamatnih stopa, objave ekonomskih prognoza ili uvođenja eura — utječu na volumen, atmosferu i tematski fokus online rasprava.
 
 
+##
 
-## O projektu i podacima
-
-Ova analiza je dio projekta mapiranja medijskog prostora ključnih hrvatskih institucija.
-
-  Izvor: Baza podataka od preko 25 mil medijskih objava.
-
-  Razdoblje: 1. siječnja 2021. – 31. prosinca 2024.
-
-  Metodologija: Kombinacija mrežne analize, obrade prirodnog jezika (NLP), tematskog modeliranja i analize sentimenta.
-    
-    
-    
-Kontakt
-
-Za sva pitanja, prijedloge ili komentare, slobodno me kontaktirajte.
-
-  Autor: [Luka Šikić]
-
-  Email: [luka.sikic@unicath.hr]
+Svako izvješće je interaktivno i omogućuje detaljno istraživanje podataka, pružajući korisnicima mogućnost samostalnog analiziranja medijskog diskursa o Hrvatskoj središnjoj banci.

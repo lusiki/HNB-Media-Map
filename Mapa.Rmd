@@ -1,5 +1,5 @@
 ---
-title: "Analiza medijske prisutnosti Hrvatske Narodne Banke u digitalnom medijskom prostoru (2021. – 2023.)"
+title: "Analiza medijske prisutnosti Hrvatske Narodne Banke u digitalnom medijskom prostoru"
 author: ""
 date: "22. srpnja 2025."
 output: 

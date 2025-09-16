@@ -1,5 +1,5 @@
 ---
-title: "Tematska mapa HNB u digitalnom medijskom prostoru u RH (2021-2023)"
+title: "Tematska mapa HNB u digitalnom medijskom prostoru u RH"
 author: "Lux"
 date: "20. kolovoza 2025."
 output: 
@@ -291,26 +291,27 @@ dta_with_themes2 <- bind_cols(dta, theme_analysis_data2)
 
 ```
 
-## Uvod: O čemu se govori?
 
-Nakon mapiranja ključnih aktera i platformi u našoj [prvoj analizi](https://lusiki.github.io/DigiKat/mapa.html), ovaj izvještaj zaranja dublje u **sadržaj** digitalnog diskursa. Koristeći metode obrade prirodnog jezika (NLP) na uzorku od 270k medijskih objava, prelazimo s pitanja *tko* i *gdje* na ključno pitanje: **o čemu se govori?**
+### Uvod: O čemu se govori?
 
-Naš cilj je stvoriti "anatomiju diskursa":
+Nakon mapiranja ključnih aktera i platformi u  prvoj analizi, ovaj izvještaj zaranja dublje u sadržaj digitalnog diskursa o Hrvatskoj narodnoj banci. Koristeći metode obrade prirodnog jezika (NLP) na cjelokupnom korpusu od preko 250.000 medijskih objava, prelazimo s pitanja tko i gdje na pitanje: o čemu se govori?
+
+Cilj je stvoriti "anatomiju diskursa" u tri ključna smjera:
 <br>
-1.  **Identificirati** glavne teme koje oblikuju raspravu.
-<br>
-2.  **Izmjeriti** njihov intenzitet, utjecaj i polarizacijski potencijal.
-<br>
-3.  **Otkriti** kako se teme međusobno povezuju i kako se njihov fokus mijenja kroz vrijeme.
 
-Ova analiza koristi **vođeni pristup tematskom modeliranju**, gdje smo na temelju teološke i komunikološke ekspertize definirali 16 ključnih tematskih kategorija, omogućujući preciznu i interpretativnu klasifikaciju sadržaja.
+ -> Identificirati glavne teme koje oblikuju raspravu o HNB-u.
 
+ -> Izmjeriti njihov intenzitet i utjecaj na angažman publike.
 
-## Vizualni sažetak korupsa: Oblak riječi
+ -> Otkriti kako se teme međusobno povezuju i kako se njihov fokus mijenja kroz vrijeme.
 
-Prije nego što zaronimo u detaljnu analizu, započnimo s pogledom iz ptičje perspektive. Sljedeći oblak riječi prikazuje **150 najčešćih, smislenih riječi** (imenica, pridjeva i glagola) u cjelokupnom korpusu od preko 250.000 medijskih objava. Veličina svake riječi proporcionalna je njenoj ukupnoj frekvenciji.
+Aanaliza koristi vođeni pristup tematskom modeliranju, gdje smo na temelju ekonomske i financijske ekspertize definirali ključne tematske kategorije, omogućujući preciznu i interpretativnu klasifikaciju sadržaja.
 
-Ovaj vizualni sažetak odmah otkriva ključne entitete i koncepte koji čine srž diskursa: **crkva, papa, biskup, Hrvatska, život, godina, čovjek, vjera i molitva**.
+### Vizualni sažetak korpusa
+
+Prije detaljnije analize,pogledajmo oblak 150 najčešćih, smislenih riječi (imenica, pridjeva i glagola) u cjelokupnom korpusu. Veličina svake riječi proporcionalna je njenoj ukupnoj frekvenciji.
+
+Ovaj vizualni sažetak odmah otkriva ključne entitete i koncepte koji čine srž diskursa: HNB, guverner, banka, euro, inflacija, kamatna stopa, Vujčić, gospodarstvo i cijena.
 
 ```{r plot-wordcloud, fig.height=8, fig.width=12}
 # 1. Priprema teksta: Lematizacija i uklanjanje zaustavnih riječi
@@ -420,15 +421,13 @@ wordcloud(
 
 ---
 
-## 1. Pregled tematskog pejzaža
+# I.Pregled tematskog pejzaža
 
 Prvi korak je razumjeti opću strukturu diskursa. Koje teme dominiraju, a koje su na marginama? Koliko su te teme centralne za članke u kojima se pojavljuju?
 
+### Dinamika glavnih tema 
 
-
-### Dinamika glavnih tema (2021-2023)
-
-Analiza udjela svake teme u ukupnom broju spominjanja otkriva stabilnu strukturu, ali i suptilne promjene. Očekivano, teme vezane za **Duhovnost i liturgiju** te **Crkvenu instituciju** čine okosnicu diskursa. Značajan udio zauzimaju i teme koje povezuju Crkvu s društvom, poput **Politike** i **Bioetike**.
+Analiza udjela svake teme u ukupnom broju spominjanja otkriva stabilnu strukturu, ali i značajne promjene potaknute ključnim događajima. Očekivano, teme vezane za Monetarnu politiku i inflaciju te Financijsku stabilnost čine okosnicu diskursa. Značajan udio zauzima i tema Uvođenja eura, čiji je vrhunac vidljiv tijekom 2022. godine, dok teme vezane za Javnu percepciju i kritike također imaju konstantan i zamjetan udio.
 
 ```{r plot-topic-trends}
 
@@ -483,17 +482,9 @@ ggplot(topic_trends_guided2, aes(x = year, y = share, color = topic, group = top
 ```
 
 
-
-
-
-
-
-
-
-
 ### Intenzitet tema: Što je vijest, a što pozadinski šum?
 
-Nije svako spominjanje teme jednako važno. Ovaj grafikon pokazuje koliko je tema **centralna** za članak kada se u njemu pojavi. Teme s distribucijom pomaknutom udesno (npr. `duhovnost`) su one koje, kada se pojave, dominiraju člankom i predstavljaju glavnu vijest. Teme s distribucijom bliže lijevoj strani (npr. `ideologija`) češće se spominju usputno, kao kontekst.
+Nije svako spominjanje teme jednako važno. Ovaj grafikon pokazuje koliko je tema centralna za članak kada se u njemu pojavi. Teme s distribucijom pomaknutom udesno (npr. Monetarna politika) su one koje, kada se pojave, dominiraju člankom i predstavljaju glavnu vijest. Teme s distribucijom bliže lijevoj strani (npr. Međunarodni odnosi) češće se spominju usputno, kao kontekst glavne priče.
 
 ```{r plot-topic-intensity}
 thematic_intensity_data <- dta_enriched %>%
@@ -538,16 +529,13 @@ ggplot(thematic_intensity_data2, aes(x = intensity, y = fct_reorder(topic, inten
 ```
 
 
-
----
-
-## 2. Utjecaj i prijem tema
+# II.Utjecaj i prijem tema
 
 Nakon što smo mapirali teme, istražujemo kako publika reagira na njih. Koje teme potiču najveći angažman, a koje najviše polariziraju?
 
 ### Koje teme generiraju najviše interakcija?
 
-Analiza prosječnog broja interakcija po članku otkriva da teme koje se tiču **unutarcrkvenih prijepora, bioetike i skandala** generiraju značajno veći angažman od tema vezanih za duhovnost ili institucionalno funkcioniranje. Ovo ukazuje da **konflikt i kontroverza** služe kao ključni pokretači interakcija u digitalnom prostoru.
+Analiza prosječnog broja interakcija po članku otkriva da teme koje se tiču Javne percepcije i kritika (posebno vezane uz afere ili slučaj "Franak") generiraju značajno veći angažman od stručnih tema vezanih za makroekonomske analize ili platni promet. Ovo ukazuje da konflikt i kontroverza služe kao ključni pokretači interakcija u digitalnom prostoru kada je riječ o HNB-u.
 
 ```{r plot-engagement-by-topic}
 engagement_by_topic <- dta_enriched %>%
@@ -599,11 +587,12 @@ ggplot(engagement_by_topic2, aes(x = avg_interactions, y = reorder(dominant_topi
 
 
 
+```{r plot-polarization-by-topic, eval= FALSE, fig.height=6, fig.width=10}
 ### Mapa emocija: Koje teme izazivaju ljubav, a koje ljutnju?
 
-Analizirajući Facebook reakcije, možemo okvirno mapirati emocionalni odgovor na svaku temu. Rezultati su jasni: teme vezane za **Duhovnost i Karitas** dominantno izazivaju pozitivne reakcije (`Love`), dok teme **Bioetike, Politike i Skandala** generiraju najveći udio negativnih (`Angry`) reakcija, potvrđujući njihovu ulogu kao glavnih točaka polarizacije.
+# Analizirajući Facebook reakcije, možemo okvirno mapirati emocionalni odgovor na svaku temu. Rezultati su jasni: teme vezane za Financijsku stabilnost i uspješno Uvođenje eura dominantno izazivaju pozitivne ili neutralne reakcije. S druge strane, teme Javnih kritika i rasprave o Inflaciji generiraju najveći udio negativnih (Angry) reakcija, potvrđujući njihovu ulogu kao glavnih točaka polarizacije.
 
-```{r plot-polarization-by-topic}
+
 polarization_by_topic <- dta_enriched %>%
   filter(TOTAL_REACTIONS_COUNT > 1) %>%
   group_by(dominant_topic) %>%
@@ -631,13 +620,13 @@ ggplot(polarization_by_topic, aes(y = reorder(dominant_topic, angry_ratio))) +
 
 ---
 
-## 3. Akteri i narativni okviri
+# III.Akteri i narativni okviri
 
 Tko su glavni protagonisti svake teme i kako se teme međusobno povezuju u šire narativne okvire? Ova sekcija spaja tematsku analizu s analizom aktera i mrežnom analizom.
 
 ### Glavni akteri unutar svake teme
 
-Svaka tematska "priča" ima svoje glavne likove. Analizom najčešće spominjanih osoba i organizacija unutar svake dominantne teme, dobivamo uvid u to tko su nositelji narativa. Očekivano, političari dominiraju političkim temama, dok crkveni velikodostojnici dominiraju institucionalnim.
+Svaka tematska "priča" ima svoje glavne likove. Analizom najčešće spominjanih osoba unutar svake dominantne teme, dobivamo uvid u to tko su nositelji narativa. Očekivano, dužnosnici HNB-a dominiraju stručnim temama poput monetarne politike, dok politički akteri preuzimaju glavnu riječ u temama koje se tiču javnih kritika i percepcije.
 
 
 ```{r, fig.height=10}
@@ -704,9 +693,74 @@ ggplot(top_actors_in_top_topics, aes(x = n, y = reorder_within(lemma, n, dominan
 
 
 
+```{r, eval = FALSE}
+
+
+# 1. KORAK: Identificiramo kojih je 5 najčešćih dominantnih tema
+top_5_dominant_topics2 <- dta_enriched2 %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  count(dominant_topic, sort = TRUE) %>%
+  slice_max(order_by = n, n = 5) %>%
+  pull(dominant_topic) # 'pull' izvlači samo imena tema u vektor
+
+# 2. KORAK: Priprema podataka ostaje ista, ali s dodatnim filterom
+entities_in_topics2 <- nlp_results_df %>%
+  filter(upos == "PROPN") %>%
+  select(doc_id, lemma) %>%
+  inner_join(dta_enriched2 %>% select(doc_id, dominant_topic), by = "doc_id") %>%
+  filter(dominant_topic %in% top_5_dominant_topics) # # OVDJE JE FILTER!
+ # filter(!lemma %in% c("hrvatska", "OŽALOŠCENI", "bog", "isus", "zagreb", "split", "nedjelja", "crkva", "dalmacija"))
+
+# 3. KORAK: Izračun top 6 aktera unutar tih 5 tema
+top_actors_in_top_topics2 <- entities_in_topics2 %>%
+  count(dominant_topic, lemma, sort = TRUE) %>%
+  group_by(dominant_topic) %>%
+  slice_max(order_by = n, n = 10) %>%
+  ungroup()
+
+# 4. KORAK: Poboljšana vizualizacija
+ggplot(top_actors_in_top_topics2, aes(x = n, y = reorder_within(lemma, n, dominant_topic), fill = dominant_topic)) +
+  
+  # Stupci ostaju isti
+  geom_col(show.legend = FALSE, width = 0.8) +
+  
+  # UKLANJAMO 'geom_text' LINIJU - OVO JE KLJUČNA PROMJENA
+  # geom_text(aes(label = n), hjust = -0.2, size = 3.5, color = "gray20") +
+  
+  # Ostatak koda ostaje isti
+  scale_y_reordered() +
+  scale_fill_viridis_d() +
+  
+  # Promijenili smo broj stupaca na 1 radi boljeg prikaza 5 tema
+  facet_wrap(~ dominant_topic, scales = "free_y", ncol = 1) + 
+  
+  labs(
+    title = "Ključni akteri unutar Top 5 najzastupljenijih tema",
+    subtitle = "Top 6 najčešće spominjanih osoba ili organizacija za svaku temu",
+    x = "Ukupan broj spominjanja", # Dodajemo x-os jer više nema tekstualnih oznaka
+    y = "Akter (lema)"
+  ) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(face = "bold", size = 20, margin = margin(b = 5)),
+    plot.subtitle = element_text(size = 14, color = "gray40", margin = margin(b = 20)),
+    strip.text = element_text(face = "bold", size = 12, hjust = 0),
+    panel.grid.major.y = element_blank(),
+    panel.grid.major.x = element_line(color = "#f0f0f0"),
+    panel.grid.minor = element_blank(),
+    plot.margin = margin(20, 20, 20, 20)
+  )
+```
+
+
+
+
+
+
 ### Mreža narativnih okvira: Kako se teme povezuju?
 
-Teme se rijetko pojavljuju izolirano. One se spajaju u šire **narativne okvire (frames)**. Analizom ko-okurencije tema unutar istih članaka, možemo mapirati te veze. Mreža pokazuje snažnu povezanost između **Politike, Povijesti i Bioetike**, tvoreći dominantan "društveno-politički" klaster. S druge strane, teme poput **Duhovnosti i Karitasa** čine zaseban, "pastoralni" klaster.
+Teme se rijetko pojavljuju izolirano. One se spajaju u šire narativne okvire (frames). Analizom ko-okurencije tema unutar istih članaka, možemo mapirati te veze. Mreža pokazuje snažnu povezanost između Monetarne politike, Inflacije i Makroekonomskih analiza, tvoreći dominantan "stručno-ekonomski" klaster. S druge strane, teme poput Javne percepcije i kritika snažno su povezane s političkim akterima, čineći izražen "društveno-politički" klaster.
 
 ```{r plot-topic-network, fig.height=10}
 # Ovaj kod je iz vašeg RMD-a, samo ga prikazujemo ovdje.
@@ -734,35 +788,37 @@ topic_pairs %>%
   )
 ```
 
+
+
+```{r , eval=FALSE}
+# Ovaj kod je iz vašeg RMD-a, samo ga prikazujemo ovdje.
+topic_pairs <- dta_enriched2 %>%
+  select(doc_id, starts_with("norm_")) %>%
+  pivot_longer(-doc_id, names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 0) %>%
+  pairwise_cor(item = topic, feature = doc_id, upper = FALSE)
+
+set.seed(123)
+topic_pairs %>%
+  filter(correlation > 0.1) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation), color = "lightblue") +
+  geom_node_point(color = "darkblue", size = 5) +
+  geom_node_text(aes(label = str_wrap(name, 20)), repel = TRUE, size = 4) +
+  theme_void() +
+  labs(
+    title = "Mreža povezanosti tema",
+    subtitle = "Koje se teme najčešće pojavljuju zajedno u istim člancima?",
+    edge_width = "Snaga veze (korelacija)",
+    edge_alpha = ""
+  )
+```
+
+
+
+
 ## Zaključak
 
-Ova dubinska tematska analiza otkriva da katolički digitalni prostor nije monolitan. Sastoji se od različitih, često odvojenih, tematskih svjetova:
-
-<br>
-*   **Pastoralni svijet:** Fokusiran na duhovnost, liturgiju i karitas, s dominantno pozitivnim prijemom kod publike.
-<br>
-*   **Društveno-politički svijet:** Gdje se teme politike, povijesti i bioetike isprepliću, generirajući najveći angažman, ali i najsnažniju polarizaciju.
-<br>
-Razumijevanje strukture, utjecaja i povezanosti ovih tema ključno je za svaku daljnju analizu narativa i sentimenata koji oblikuju javnu percepciju Crkve i vjere u Hrvatskoj.
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Ova tematska analiza pokazuje da digitalni prostor o HNB-u nije monolitan. Sastoji se od različitih, često odvojenih, tematskih prostora. Eksperni prostor fokusiran je na monetarnu politiku, financijsku stabilnost i makroekonomske analize, s dominantno neutralnim i stručnim tonom.Javno-politički prostor: Gdje se teme uvođenja eura, utjecaja inflacije i javnih kritika isprepliću, generirajući najveći angažman, ali i najsnažniju polarizaciju.Razumijevanje strukture, utjecaja i povezanosti ovih tema ključno je za svaku daljnju analizu narativa i sentimenata koji oblikuju javnu percepciju Hrvatske narodne banke.
