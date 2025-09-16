@@ -15,7 +15,7 @@ Svako izvješće je interaktivno i gradi se na prethodnom, pružajući sve dublj
 
 Ovdje možete pristupiti svakoj od četiri faze istraživanja.
 
-### Faza 1: (Mapa Medijskog Ekosustava)[https://raw.githack.com/lusiki/HNB-Media-Map/main/Mapa.html]
+### Faza 1: [Mapa Medijskog Ekosustava](https://raw.githack.com/lusiki/HNB-Media-Map/main/Mapa.html)
 
   Odgovara na temeljna pitanja: TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. Analizira ključne aktere (od dužnosnika i političara do neovisnih analitičara), dominantne platforme i dinamiku njihovog utjecaja.
 
