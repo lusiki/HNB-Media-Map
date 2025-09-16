@@ -1,0 +1,1062 @@
+---
+title: "Atmosfera diskursa: Emocionalna i konfliktna mapa financijskog digitalnog prostora Hrvatske narodne banke"
+author: "Istraživački tim projekta, Hrvatsko katoličko sveučilište"
+date: "22. kolovoza 2025."
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+# --- Globalne postavke ---
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 12, fig.height = 7, dpi = 200)
+```
+
+```{r libraries, include=FALSE}
+# --- Učitavanje svih potrebnih paketa ---
+library(scales)
+library(patchwork)
+library(dplyr)
+library(tidytext)
+library(stringr)
+library(ggplot2)
+library(forcats)
+library(tidyr)
+library(widyr)
+library(ggraph)
+library(igraph)
+library(data.table)
+library(readxl)
+library(ggrepel)
+
+```
+
+
+
+
+```{r lexicons, include=FALSE, eval=FALSE}
+# read in lexicons
+CroSentilex_n <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
+                                   header = FALSE,
+                                   sep = " ",
+                                   stringsAsFactors = FALSE,
+                                   fileEncoding = "UTF-8")  %>%
+                   rename(word = "V1", sentiment = "V2" ) %>%
+                   mutate(brija = "NEG")
+
+CroSentilex_p  <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-positives.txt",
+                                   header = FALSE,
+                                   sep = " ",
+                                   stringsAsFactors = FALSE,
+                                   fileEncoding = "UTF-8") %>%
+                    rename(word = "V1", sentiment = "V2" ) %>%
+                    mutate(brija = "POZ")
+
+crosentilex  <- rbind(setDT(CroSentilex_n), setDT(CroSentilex_p))
+# # check lexicon data 
+# #head(sample_n(Crosentilex_sve,1000),15)
+# 
+#  
+CroSentilex_Gold  <- read.delim2("C:/Users/Lukas/Dropbox/Mislav@Luka/gs-sentiment-annotations.txt",
+                                 header = FALSE,
+                                 sep = " ",
+                                 stringsAsFactors = FALSE) %>%
+                    rename(word = "V1", sentiment = "V2" )
+ # Encoding(CroSentilex_Gold$word) <- "UTF-8"
+ # CroSentilex_Gold[1,1] <- "dati"
+ # CroSentilex_Gold$sentiment <- str_replace(CroSentilex_Gold$sentiment , "-", "1")
+ # CroSentilex_Gold$sentiment <- str_replace(CroSentilex_Gold$sentiment , "\\+", "2")
+ # CroSentilex_Gold$sentiment <- as.numeric(unlist(CroSentilex_Gold$sentiment))
+# check lexicon data 
+#head(sample_n(CroSentilex_Gold,100),15)
+crosentilex_gold_prepared <- CroSentilex_Gold %>%
+  mutate(
+    sentiment_value = case_when(
+      sentiment == 2 ~ 1,   # Pozitivno
+      sentiment == 1 ~ -1,  # Negativno
+      TRUE ~ 0              # Neutralno
+    )
+  ) %>%
+  select(word, sentiment_value)
+
+ 
+nrc_lexicon  <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean.xlsx", sheet = "Sheet1") %>% select (-"...1")
+
+
+# Prvo definiramo "rječnik" za prevođenje
+emotion_translator_hr <- c(
+  "Anger"        = "Ljutnja",
+  "Anticipation" = "Iščekivanje",
+  "Disgust"      = "Gađenje",
+  "Fear"         = "Strah",
+  "Joy"          = "Radost",
+  "Sadness"      = "Tuga",
+  "Surprise"     = "Iznenađenje",
+  "Trust"        = "Povjerenje"
+  # Ne trebamo 'Positive' i 'Negative' jer ih ionako filtriramo
+)
+
+# Sada modificiramo originalni cjevovod
+nrc_lexicon_long <- nrc_lexicon %>%
+  rename(word = HR) %>% 
+  pivot_longer(
+    cols = -word,
+    names_to = "emotion",
+    values_to = "value"
+  ) %>%
+  filter(value == 1) %>%
+  select(word, emotion) %>%
+  # Filtriramo opće sentimente PRIJE prevođenja
+  filter(emotion != "Positive" & emotion != "Negative") %>%
+  # DODAJEMO NOVI KORAK: Prevođenje stupca 'emotion'
+  mutate(emotion = recode(emotion, !!!emotion_translator_hr))
+
+nrc_lexicon_long_ <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean_long.xlsx", sheet = "Sheet1") %>% select (-"...1") 
+
+```
+
+
+```{r load-lexicons}
+# --- FAZA 1: UČITAVANJE I PRIPREMA SVIH LEKSIKONA ---
+# Ovaj chunk učitava sve potrebne jezične resurse i pretvara ih u "uredan" (tidy)
+# format spreman za spajanje s lingvističkim podacima.
+# Ključni koraci su forsiranje UTF-8 kodiranja i standardizacija formata.
+
+# --- 1.1: CroSentilex (fina skala sentimenata) ---
+# Učitavamo pozitivne i negativne liste i odmah ih spajamo u jedan leksikon
+# sa standardiziranom numeričkom skalom.
+crosentilex_full <- bind_rows(
+  # Učitavanje negativnih riječi
+  read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
+             header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+    rename(word = "V1", sentiment_value = "V2") %>%
+    mutate(sentiment_value = -sentiment_value), # Pretvaramo score u negativan
+  
+  # Učitavanje pozitivnih riječi
+  read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-positives.txt",
+             header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+    rename(word = "V1", sentiment_value = "V2") # Score je već pozitivan
+) %>%
+  as_tibble() # Pretvaramo u tibble radi bolje konzistentnosti
+
+# --- 1.2: CroSentilex-Gold (kategorički sentiment) ---
+# Učitavamo "zlatni standard" i pretvaramo tekstualne oznake u numeričku skalu (-1, 0, 1).
+crosentilex_gold_prepared <- read.delim2("C:/Users/Lukas/Dropbox/Mislav@Luka/gs-sentiment-annotations.txt",
+                                         header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+  rename(word = "V1", sentiment_str = "V2") %>%
+  mutate(
+    sentiment_value = case_when(
+      sentiment_str == "+" ~ 1,
+      sentiment_str == "-" ~ -1,
+      TRUE ~ 0
+    )
+  ) %>%
+  select(word, sentiment_value) %>%
+  as_tibble()
+
+# --- 1.3: NRC Leksikon Emocija (za psihološke procese) ---
+# Učitavamo NRC leksikon, pretvaramo ga u "dugi" format i prevodimo na hrvatski.
+nrc_lexicon_raw <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean.xlsx", sheet = "Sheet1") %>% 
+                   select(-"...1") %>%
+                   rename(word = HR)
+
+# Rječnik za prevođenje engleskih naziva emocija
+emotion_translator_hr <- c(
+  "Anger" = "Ljutnja", "Anticipation" = "Iščekivanje", "Disgust" = "Gađenje",
+  "Fear" = "Strah", "Joy" = "Radost", "Sadness" = "Tuga",
+  "Surprise" = "Iznenađenje", "Trust" = "Povjerenje"
+)
+
+# Transformacija u dugi, prevedeni format
+nrc_lexicon_long <- nrc_lexicon_raw %>% 
+  pivot_longer(
+    cols = all_of(names(emotion_translator_hr)), # Koristimo samo 8 glavnih emocija
+    names_to = "emotion",
+    values_to = "value"
+  ) %>%
+  filter(value == 1) %>% # Zadržavamo samo postojeće veze riječ-emocija
+  mutate(emotion = recode(emotion, !!!emotion_translator_hr)) %>% # Prevodimo na hrvatski
+  select(word, emotion)
+
+# --- Provjera Učitanih Leksikona (opcionalno) ---
+# print("Primjer CroSentilex-Full:")
+# print(head(crosentilex_full))
+# print("Primjer CroSentilex-Gold Prepared:")
+# print(head(crosentilex_gold_prepared))
+# print("Primjer NRC Long:")
+# print(head(nrc_lexicon_long))
+```
+
+
+```{r data-preparation, include=FALSE, eval=T}
+# --- Priprema podataka (izvršava se u pozadini) ---
+
+# Učitavanje glavne baze podataka
+# remove titkok from SOURCE_TYPE
+dta <- readRDS("./hnb.rds") %>%
+  mutate(
+    DATE = as.Date(DATE), # Convert the column to Date class first
+    year = as.integer(format(DATE, "%Y"))
+  ) %>%
+  filter(SOURCE_TYPE != "tiktok") %>%
+  mutate(
+    SOURCE_TYPE = factor(SOURCE_TYPE, levels = c("web", "youtube", "facebook", "twitter", "reddit", "forum", "comment"))
+  ) %>%
+  #remove year 2024
+  filter(DATE >= as.Date("2021-01-01") & DATE < as.Date("2024-01-01")) %>%
+  filter(year != 2024) %>%
+  mutate(doc_id = row_number())
+
+
+
+# Kreiranje stratificiranog uzorka
+# sample_proportion <- 0.05
+# set.seed(123)
+# dta_stratified_sample <- dta %>%
+#   filter(nchar(FULL_TEXT) > 100) %>%
+#   group_by(year, SOURCE_TYPE) %>%
+#   slice_sample(prop = sample_proportion) %>%
+#   ungroup() %>%
+#   mutate(doc_id = row_number())
+
+# Učitavanje prethodno obrađenih lingvističkih podataka (štedi vrijeme)
+files <- list.files("D:/LUKA/HNB/Language model sample", full.names = TRUE, pattern = "\\.rds")
+nlp_results_df <- lapply(files, readRDS) %>%
+  bind_rows() %>%
+  mutate(doc_id = as.integer(doc_id))
+
+# Definicija tematskih rječnika v3
+thematic_dictionaries_v3 <- list(
+  
+  # 1. Glavna funkcija HNB-a: kontrola cijena i novčane mase
+  MONETARNA_POLITIKA_I_INFLACIJA = sort(c(
+    "agregat", "cijen", "ciljan", "deflacij", "dezinflacij", "eskontn", 
+    "ekspanzivn", "hro", "inflacij", "kamatn", "kamatna stopa", "kreditni plasmani", 
+    "likvidnost", "mas", "monetarn", "novčan", "obvezna pričuva", "otvoreno tržište",
+    "ponud", "potražnj", "referentn", "repo", "restriktivn", "stabilnost cijena", 
+    "stop", "transmisijsk"
+  )),
+  
+  # 2. Druga glavna funkcija: nadzor banaka i osiguranje zdravlja financijskog sustava
+  FINANCIJSKA_STABILNOST_I_NADZOR_BANAKA = sort(c(
+    "adekvatnost kapitala", "aml", "bank", "basel", "bonitet", "depozit", "financijsk", 
+    "hanfa", "institucij", "kapitalni zahtjev", "kreditn", "leasing", "likvidacij",
+    "loš kredit", "makrobonitetn", "nadzor", "nenaplativ", "npl", "osiguranje", 
+    "osiguranje depozita", "regulacij", "rizik", "sanacij", "sistemsk",
+    "sprečavanje pranja novca", "stabilnost", "stečaj", "stres test", "supervizij"
+  )),
+  
+  # 3. Ključna tema u promatranom razdoblju
+  UVODJENJE_EURA_I_TECAJ = sort(c(
+    "aprecijacij", "cent", "deprecijacij", "devizn", "devizni tečaj", "dvostruki optjecaj", 
+    "erm ii", "eur", "eurozon", "eurosustav", "fiksni tečaj", "konverzij", "kovnica novca",
+    "kuna", "lipa", "prilagodb", "tečaj", "uvođenj", "zamjen", "zaokruživanj"
+  )),
+  
+  # 4. HNB kao analitička institucija koja objavljuje projekcije za gospodarstvo
+  MAKROEKONOMSKE_ANALIZE_I_PROGNOZE = sort(c(
+    "analiz", "bdp", "bilten", "dug", "ekonomsk", "fiskaln", "gospodarsk", 
+    "industrijska proizvodnja", "investicij", "izvoz", "izvješć", "javni dug", 
+    "konkurentnost", "kretanj", "makroekonomsk", "nezaposlenost", "očekivanj", 
+    "potrošnj", "prognoz", "projekcij", "rast", "recesij", "uvoz", "zaposlenost"
+  )),
+  
+  # 5. Funkcioniranje same institucije, njezinih tijela i transparentnost
+  UPRAVLJANJE_I_TRANSPARENTNOST_HNB = sort(c(
+    "devizne pričuve", "dobit", "guverner", "gubitak", "hnb", "izvješće saboru", 
+    "mandat", "neovisnost", "odluk", "pričuv", "proračun hnb", "revizij", "savjet hnb",
+    "sjednic", "statut", "transparentnost", "viceguverner", "zakon o hnb", "zlato", 
+    "zlatne rezerve"
+  )),
+  
+  # 6. Upravljanje fizičkim i digitalnim novcem te platnim sustavima
+  PLATNI_PROMET_I_GOTOVINA = sort(c(
+    "beskontaktn", "cbdc", "digitalna valuta", "digitalni euro", "digitalni novac", 
+    "fintech", "gotovin", "gotovinsk", "kartic", "kovanic", "kriptovalut", "nks", 
+    "novčanic", "platni promet", "target2", "transakcij"
+  )),
+  
+  # 7. Odnosi s ključnim međunarodnim financijskim institucijama
+  MEDJUNARODNI_ODNOSI_I_EU = sort(c(
+    "banka za međunarodne namire", "bis", "članstv", "ebrd", "ecb", "esb", 
+    "europska komisija", "europska središnja banka", "europsk", "fitch", "imf", 
+    "kreditni rejting", "mmf", "moody's", "s&p", "suradnj", "svjetska banka"
+  )),
+  
+  # 8. Teme koje izazivaju javnu polemiku i kritike na račun HNB-a
+  JAVNA_PERCEPCIJA_I_KRITIKE = sort(c(
+    "afer", "dužnic", "etika", "franak", "klub", "kritik", "netransparentnost",
+    "odgovornost", "plać", "polemik", "potrošač", "povjerenj", "presud", "skandal",
+    "sukob interesa", "švicarac", "troškov", "tužb", "udruga franak", "zaštita potrošača"
+  ))
+)
+
+
+hnb_duznosnici_dict <- list(
+  HNB_DUZNOSNICI = c(
+    # Sadašnji i nedavni čelnici
+    "boris vujčić", "vujčić",
+    "sandra švaljek", "švaljek",
+    "tomislav ćorić", "ćorić",
+    "michael faulend", "faulend",
+    "bojan fras", "fras",
+    "ivana jakir-bajo", "martina jakir-bajo", "jakir-bajo", "jakir", # Uključene obje verzije imena
+    "maroje lang", "lang",
+    "roman šubić", "šubić",
+    "slavko tešija", "tešija",
+    "martina drvar", "drvar",
+    
+    # Bivši guverneri
+    "željko rohatinski", "rohatinski",
+    "marko škreb", "škreb",
+    
+    # Povezani stručnjaci iz HNB-a
+    "evan kraft", "kraft" # bivši savjetnik
+  )
+)
+
+# ===================================================================
+# 2. POLITIČKI AKTERI (VLADA I PREDSJEDNIK)
+# ===================================================================
+politicki_akteri_dict <- list(
+  POLITICKI_AKTERI = c(
+    "andrej plenković", "plenković",
+    "zoran milanović", "milanović",
+    "davor škrlec", "škrlec" # Bivši EU zastupnik, čest kritičar
+  )
+)
+
+# ===================================================================
+# 3. NEOVISNI ANALITIČARI, AKADEMICI I NOVINARI
+# ===================================================================
+analiticari_i_mediji_dict <- list(
+  ANALITICARI_I_MEDIJI = c(
+    # Ekonomski analitičari i profesori
+    "velimir šonje", "šonje",
+    "ljubo jurčić", "jurčić",
+    "ivo družić", "družić",
+    
+    # Specijalizirani novinari
+    "marina klepo", "klepo",
+    "boris pavković", "pavković"
+  )
+)
+
+# ===================================================================
+# 4. ČELNICI DRUGIH FINANCIJSKIH INSTITUCIJA
+# ===================================================================
+financijske_institucije_dict <- list(
+  FINANCIJSKE_INSTITUCIJE = c(
+    # HANFA
+    "ante žigman", "žigman", # sadašnji predsjednik
+    "ante matek", "matek",   # bivši predsjednik
+    
+    # HUB (Hrvatska udruga banaka)
+    "tamara perko", "perko", # sadašnja predsjednica
+    "zdenko rogić", "rogić", # bivši predsjednik
+    
+    # HBOR
+    "miroslav gržetić", "gržetić"
+  )
+)
+
+# ===================================================================
+# 5. MEĐUNARODNI DUŽNOSNICI (ECB, MMF)
+# ===================================================================
+medjunarodni_duznosnici_dict <- list(
+  MEDJUNARODNI_DUZNOSNICI = c(
+    # ECB
+    "christine lagarde", "lagarde",
+    "mario draghi", "draghi",
+    
+    # MMF
+    "jan kees martijn", "martijn",
+    "hans-jörg rudloff", "rudloff" # Napomena: Rudloff je bio predstavnik investicijske banke, ne MMF-a
+  )
+)
+
+# ===================================================================
+# 6. SINDIKALNI I DRUGI PREDSTAVNICI
+# ===================================================================
+sindikati_i_drugi_dict <- list(
+  SINDIKATI_I_DRUGI = c(
+    "krešimir sever", "sever",
+    "mladen novosel", "novosel"
+  )
+)
+
+
+
+svi_ljudi_dictionary <- c(
+  hnb_duznosnici_dict,
+  politicki_akteri_dict,
+  analiticari_i_mediji_dict,
+  financijske_institucije_dict,
+  medjunarodni_duznosnici_dict,
+  sindikati_i_drugi_dict
+)
+
+# Kombiniranje s glavnim tematskim rječnikom
+#final_dictionary <- c(hnb_thematic_dictionary_v2, svi_ljudi_dictionary)
+
+
+
+
+
+
+
+
+
+# Izračun tematskih scoreova i obogaćivanje baze podataka
+calculate_theme_scores <- function(text, dictionaries) {
+  text_lower <- tolower(text)
+  total_words <- str_count(text_lower, "\\w+")
+  if (total_words == 0) return(NULL)
+  scores <- purrr::map(dictionaries, ~sum(str_count(text_lower, .x)))
+  normalized_scores <- purrr::map(scores, ~(.x / total_words) * 1000)
+  names(normalized_scores) <- paste0("norm_", names(scores))
+  scores_vec <- unlist(scores)
+  if(all(scores_vec == 0)){
+    dominant_topic <- "Nema Teme"
+  } else {
+    dominant_topic <- names(scores)[which.max(scores_vec)]
+  }
+  return(c(as.list(scores), as.list(normalized_scores), dominant_topic = dominant_topic))
+}
+theme_analysis_data <- purrr::map_dfr(dta$FULL_TEXT, ~calculate_theme_scores(., thematic_dictionaries_v3))
+dta_enriched <- bind_cols(dta, theme_analysis_data)
+dta_with_themes <- bind_cols(dta, theme_analysis_data)
+
+
+
+theme_analysis_data2 <- purrr::map_dfr(dta$FULL_TEXT, ~calculate_theme_scores(., svi_ljudi_dictionary))
+dta_enriched2 <- bind_cols(dta, theme_analysis_data2)
+dta_with_themes2 <- bind_cols(dta, theme_analysis_data2)
+
+
+
+```
+
+
+## Uvod: Kako se govori o HNB-u
+
+Nakon što smo mapirali tko govori i o čemu,  treća faza analize bavi se najsuptilnijim, ali možda i najvažnijim pitanjem: kakva je atmosfera digitalnog diskursa o Hrvatskoj centralnoj banci? Zanima nas kako se o monetarnoj politici, bankovnom nadzoru i financijskoj stabilnosti govori – s kojim emocionalnim tonom, kojim psihološkim apelima i s kojim intenzitetom konflikta.
+Ovaj izvještaj uvodi inovativne, kontekstualno svjesne metrike za mjerenje atmosfere financijskog diskursa, odmičući se od jednostavnih kategorija prema dubinskom razumijevanju komunikacijskih strategija u ekonomskom javnom prostoru. Naš pristup sastoji se od tri koraka:
+
+-> Dvoslojna Emocionalna Analiza: Razdvajamo površinski tonalitet od dubinskih psiholoških procesa.
+-> Relativni Indeks Konflikta (RCI): Mjerimo "neočekivanu" agresivnost jezika u financijskim temama.
+-> Mapa Narativne Atmosfere: Vizualiziramo kako se atmosfera mijenja kada se ekonomske teme spoje.
+
+---
+
+# I. Dvoslojna emocionalna analiza
+
+Da bismo razumjeli atmosferu financijskog diskursa, moramo razlikovati dvije stvari: je li tekst napisan u pozitivnom/negativnom tonu (tonalitet) i kojim se psihološkim apelima (strah, povjerenje, iščekivanje) služi da bi prenio poruku o HNB-u i monetarnoj politici.
+
+```{r emotional-analysis, include=FALSE, eval=T}
+# --- Izračuni za dvoslojnu analizu (izvršava se u pozadini) ---
+
+# Sloj 1: Sentiment Score (CroSentilex)
+# document_sentiments <- nlp_results_df %>%
+#   inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+#   group_by(doc_id) %>%
+#   summarise(sentiment_score = median(sentiment_value, na.rm = TRUE)) %>%
+#   ungroup()
+# files <- list.files("D:/LUKA/Language model", full.names = TRUE, pattern = "\\.rds")
+# nlp_results_df <- lapply(files, readRDS) %>%
+#   bind_rows() %>%
+#   mutate(doc_id = as.integer(doc_id))
+
+
+sentiment_counts_gold <- nlp_results_df %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  # Filtriramo neutralne riječi jer nam ne trebaju za ovu formulu
+  filter(sentiment_value != 0) %>% 
+  # Brojimo koliko je pozitivnih (1) i negativnih (-1) riječi
+  count(doc_id, sentiment_value) %>%
+  # Pretvaramo u široki format da imamo stupce za 'pozitivne' i 'negativne'
+  pivot_wider(names_from = sentiment_value, values_from = n, values_fill = 0)
+
+# --- DEFENZIVNI BLOK KODA ---
+# Provjeravamo postoji li stupac '1' (pozitivni). Ako ne, dodajemo ga s nulama.
+if (!"1" %in% names(sentiment_counts_gold)) {
+  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`1` = 0) }
+# Provjeravamo postoji li stupac '-1' (negativni). Ako ne, dodajemo ga s nulama.
+if (!"-1" %in% names(sentiment_counts_gold)) {
+  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`-1` = 0) }
+# --- KRAJ DEFENZIVNOG BLOKA ---
+
+# Sada sigurno preimenujemo stupce jer znamo da postoje
+sentiment_counts_gold <- sentiment_counts_gold %>%
+  rename(
+    positive_words = `1`,
+    negative_words = `-1` )
+
+
+epsilon <- 1e-6 
+
+document_sentiments_gold <- sentiment_counts_gold %>%
+  mutate(
+    sentiment_score_gold = (positive_words - negative_words) / (positive_words + negative_words + epsilon)
+  ) %>%
+  select(doc_id, sentiment_score_gold)
+
+# Sloj 2: Dominantni Psihološki Proces (NRC)
+document_emotions <- nlp_results_df %>%
+  inner_join(nrc_lexicon_long, by = c("lemma" = "word")) %>%
+  count(doc_id, emotion) %>%
+  group_by(doc_id) %>%
+  slice_max(order_by = n, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(doc_id, dominant_emotion = emotion)
+
+# Spajanje svega u jedan dataframe
+dta_atmosphere <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(document_emotions, by = "doc_id") %>%
+  mutate(
+    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion)
+  )
+
+# Priprema podataka za vizualizaciju
+heatmap_data <- dta_atmosphere %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic, dominant_emotion) %>%
+  summarise(avg_sentiment = mean(sentiment_score),
+            n_articles = n()) %>%
+  ungroup() %>%
+  # Prikazujemo samo emocije s dovoljno članaka za analizu
+  filter(n_articles > 3)
+```
+
+
+```{r analyze-atmosphere, include=T}
+# --- FAZA 3: ANALIZA ATMOSFERE (SVE NA JEDNOM MJESTU) ---
+# Ovaj chunk uzima obogaćene podatke iz prethodnog koraka i dodaje sve
+# metrike atmosfere: Sentiment, Dominantnu Emociju, CLI i RCI.
+# Rezultat je jedan, konačni dataframe 'dta_final' za sve vizualizacije.
+
+# --- 3.1: Izračun frekvencija riječi (zahtijeva 'nlp_results_df') ---
+lemmatized_words_with_freq <- nlp_results_df %>%
+  count(doc_id, lemma, name = "word_frequency")
+
+# --- 3.2: Izračun Sentiment Score-a (CroSentilex-Gold) ---
+sentiment_counts_gold <- lemmatized_words_with_freq %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  filter(sentiment_value != 0) %>%
+  count(doc_id, sentiment_value) %>%
+  pivot_wider(names_from = sentiment_value, values_from = n, values_fill = 0)
+if (!"1" %in% names(sentiment_counts_gold)) { sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`1` = 0) }
+if (!"-1" %in% names(sentiment_counts_gold)) { sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`-1` = 0) }
+document_sentiments_gold <- sentiment_counts_gold %>%
+  rename(positive_words = `1`, negative_words = `-1`) %>%
+  mutate(sentiment_score_gold = (positive_words - negative_words) / (positive_words + negative_words + 1e-6)) %>%
+  select(doc_id, sentiment_score_gold)
+
+# --- 3.3: Izračun Dominantne Emocije (NRC) ---
+document_emotions <- lemmatized_words_with_freq %>%
+  inner_join(nrc_lexicon_long, by = c("lemma" = "word")) %>%
+  group_by(doc_id, emotion) %>%
+  summarise(total_freq = sum(word_frequency), .groups="drop") %>%
+  group_by(doc_id) %>%
+  slice_max(order_by = total_freq, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(doc_id, dominant_emotion = emotion)
+
+# --- 3.4: Izračun Indeksa Konflikta (CLI i RCI) ---
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c(
+  # Opći konflikt i kritika (General Conflict & Criticism)
+  "kritik", "laž", "napad", "upozorenj", "licemjerje", "sramotno", "manipulacij", 
+  "propaganda", "ekstrem", "kontroverz", "sukob", "optužb", "prijetnj", "opasnost",
+
+  # Kriza i neuspjeh (Crisis & Failure)
+  "kriza", "kolaps", "slom", "propast", "gubitak", "šteta", "neuspjeh", "recesija",
+
+  # Nezakonitosti i skandali (Illegality & Scandals)
+  "skandal", "afera", "korupcij", "prevara", "prijevara", "zlouporaba", "tužb", 
+  "presuda", "nezakonito", "sukob interesa", "netransparentnost",
+  
+  # Ekonomski pritisci i rizici (Economic Pressures & Risks)
+  "rizik", "dug", "deficit", "teret", "namet", "trošak", "siromaštv", "špekulacij", 
+  "mjehur", # (npr. nekretninski mjehur)
+
+  # Specifične povijesne kontroverze (Specific Historical Controversies)
+  "franak", "švicarac", "klub"
+)
+))
+cli_scores <- lemmatized_words_with_freq %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    total_words = sum(word_frequency),
+    conflict_words = sum(word_frequency[is_conflict])
+  ) %>%
+  mutate(cli = (conflict_words / total_words) * 1000) %>% ungroup()
+
+dta_temp <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(document_emotions, by = "doc_id") %>%
+  left_join(cli_scores %>% select(doc_id, cli), by = "doc_id") %>%
+  mutate(
+    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion),
+    cli = ifelse(is.na(cli), 0, cli)
+  )
+
+avg_cli_media <- dta_temp %>% group_by(FROM) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_temp %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_final <- dta_temp %>%
+  left_join(avg_cli_media, by = "FROM") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+
+
+# Spajanje svega u jedan dataframe
+dta_atmosphere <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(document_emotions, by = "doc_id") %>%
+  mutate(
+    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion)
+  )
+
+# Priprema podataka za vizualizaciju
+heatmap_data <- dta_atmosphere %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic, dominant_emotion) %>%
+  summarise(avg_sentiment = mean(sentiment_score),
+            n_articles = n()) %>%
+  ungroup() %>%
+  # Prikazujemo samo emocije s dovoljno članaka za analizu
+  filter(n_articles > 3)
+
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
+### Matrica tona i psihologije
+
+Sljedeća vizualizacija prikazuje kako se tonalitet (boja ćelije) mijenja ovisno o dominantnom psihološkom procesu (stupci) unutar svake financijske teme (redovi). Plave ćelije označavaju pozitivan tonalitet, a crvene negativan, dok desni stupac prikazuje ukupni prosječni sentiment svake teme. Ova matrica otkriva sofisticirane strategije medijskog uokvirivanja financijskih tema i donosi nekoliko ključnih uvida:
+
+> Kontekst je ključan u financijskim temama: Tonalitet financijske politike nije fiksan. Vidljivo je da gotovo sve teme postaju negativne (crvena boja) kada su uokvirene Strahom od financijske krize ili Ljutnjom zbog monetarne politike. S druge strane, okviri Povjerenja u stabilnost i Iščekivanja ekonomskog oporavka gotovo univerzalno proizvode pozitivan tonalitet (plava boja).
+Identifikacija "vrućih zona" financijskog diskursa: Teme poput MONETARNA_POLITIKA i EURO_UVOĐENJE pokazuju najveći raspon sentimenata – od izrazito negativnih do izrazito pozitivnih. To ih identificira kao ključna "bojna polja" ekonomskih narativa, gdje je izbor emocionalnog okvira presudan za oblikovanje javnog mišljenja o HNB-u.
+
+> Paradoks finansijskog straha: Najzanimljiviji nalaz je uloga emocije Straha. Kada je usmjerena na teme poput FINANCIJSKA_STABILNOST, često stvara pozitivan sentiment jer predstavlja opravdanu zabrinutost za stabilnost. Međutim, kada je usmjerena na MONETARNA_POLITIKA, može stvarati negativan sentiment zbog straha od inflacije ili deflacije.
+
+```{r plot-emotion-heatmap, fig.width=10, fig.height=6, echo=FALSE}
+ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_sentiment)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = round(avg_sentiment, 2)), size = 3, color = "black") +
+  scale_fill_gradient2(low = "firebrick", mid = "white", high = "steelblue", midpoint = 0, name = "Prosj. Sentiment") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Matrica atmosfere: Kako psihološki okvir utječe na tonalitet teme",
+    subtitle = "Boja ćelije predstavlja prosječni sentiment (CroSentilex) unutar svake kombinacije teme i dominantne emocije (NRC)",
+    x = "Dominantni psihološki proces (NRC)",
+    y = "Dominantna tema"
+  )
+```
+
+
+
+---
+
+# II. Relativni indeks konflikta (RCI)
+
+Standardna mjerenja ne uzimaju u obzir kontekst. Nije isto koristiti konfliktan jezik u članku o financijskoj krizi i u članku o rutinskim statističkim izvještajima. Relativni indeks konflikta (RCI) mjeri koliko je neki članak o HNB-u neočekivano agresivniji ili pomirljiviji od onoga što je uobičajeno za njegov medij i njegovu temu.
+
+```{r rci-calculation, include=FALSE}
+# --- Izračuni za RCI (izvršava se u pozadini) ---
+conflict_lexicon <- nrc_lexicon_long %>% 
+  filter(emotion %in% c("Ljutnja", "Gađenje")) %>% 
+  pull(word) %>% 
+  unique()
+
+
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c(
+  # Opći konflikt i kritika (General Conflict & Criticism)
+  "kritik", "laž", "napad", "upozorenj", "licemjerje", "sramotno", "manipulacij", 
+  "propaganda", "ekstrem", "kontroverz", "sukob", "optužb", "prijetnj", "opasnost",
+
+  # Kriza i neuspjeh (Crisis & Failure)
+  "kriza", "kolaps", "slom", "propast", "gubitak", "šteta", "neuspjeh", "recesija",
+
+  # Nezakonitosti i skandali (Illegality & Scandals)
+  "skandal", "afera", "korupcij", "prevara", "prijevara", "zlouporaba", "tužb", 
+  "presuda", "nezakonito", "sukob interesa", "netransparentnost",
+  
+  # Ekonomski pritisci i rizici (Economic Pressures & Risks)
+  "rizik", "dug", "deficit", "teret", "namet", "trošak", "siromaštv", "špekulacij", 
+  "mjehur", # (npr. nekretninski mjehur)
+
+  # Specifične povijesne kontroverze (Specific Historical Controversies)
+  "franak", "švicarac", "klub"
+)
+))
+
+
+
+
+
+cli_scores <- nlp_results_df %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    cli = (sum(is_conflict) / n()) * 1000
+  )
+
+dta_atmosphere <- dta_enriched %>% 
+  left_join(cli_scores, by = "doc_id") %>%
+  mutate(cli = ifelse(is.na(cli), 0, cli))
+
+avg_cli_media <- dta_atmosphere %>% group_by(FROM) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_atmosphere %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_atmosphere <- dta_atmosphere %>%
+  left_join(avg_cli_media, by = "FROM") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+```
+
+
+```{r}
+# --- MODUL ZA MAPU MEDIJSKIH STRATEGIJA (ISPRAVLJENA VERZIJA) ---
+
+# Izračun CLI-a (ostaje isto)
+cli_scores <- nlp_results_df %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    cli = (sum(is_conflict) / n()) * 1000
+  ) %>% ungroup()
+
+# Spajanje i izračun RCI-a (ostaje isto)
+dta_atmosphere <- dta_enriched %>% 
+  left_join(cli_scores, by = "doc_id") %>%
+  mutate(cli = ifelse(is.na(cli), 0, cli))
+
+avg_cli_media <- dta_atmosphere %>% group_by(FROM) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_atmosphere %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_atmosphere_final <- dta_atmosphere %>%
+  left_join(avg_cli_media, by = "FROM") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+```
+
+
+
+### Mapa medijskih strategija konflikta u financijskom izvještavanju
+
+Sljedeći grafikon koristi RCI mjeru kako bi mapirao medije na temelju njihove strategije korištenja konfliktnog jezika u izvještavanju o HNB-u.Što je medij više desno, to je njegov ton prema HNB-u u prosjeku kritičniji. Što je medij više na grafikonu, to je njegov pristup HNB-u nepredvidljiviji.Veličina točke označava kupnu prisutnost medija u financijskom diskursu.
+
+Ova mapa otkriva četiri različita modela financijskog novinarstva u hrvatskom digitalnom prostoru:
+
+Gore desno - "Strateški kritičari HNB-a": Mainstream ekonomski mediji koji doziraju kritiku HNB-a ovisno o ekonomskim okolnostima.
+
+Dolje desno - "Dosljedni HNB skeptici": Mediji s konstantno kritičkim stavom prema centralnoj banci, neovisno o situaciji.
+
+Gore lijevo - "Pragmatični analitičari": Tradicionalni financijski mediji s umjerenim tonom ali sposobnošću snažne kritike kada je potrebna.
+
+Dolje lijevo - "Institucionalni podržavatelji": Mediji koji dosljedno podržavaju HNB politike i rijetko koriste konfliktan jezik.
+
+```{r plot-rci-strategy, fig.width=10, fig.height=7, warning=FALSE, message=FALSE}
+media_strategy_data <- dta_atmosphere_final %>%
+  # Grupiramo po mediju
+  group_by(FROM) %>%
+  # Računamo naše metrike I broj članaka
+  summarise(
+    avg_cli = mean(cli, na.rm = TRUE),
+    rci_sd = sd(rci, na.rm = TRUE),
+    n_articles = n()
+  ) %>%
+  ungroup() %>%
+  # Filtriramo medije s premalo članaka i one gdje je devijacija NA
+  filter(n_articles > 20, !is.na(rci_sd), rci_sd > 0) %>%
+  # Uzimamo top 30 po broju članaka radi preglednosti
+  slice_max(order_by = n_articles, n = 30)
+
+# Vizualizacija s poboljšanjima
+ggplot(media_strategy_data, aes(x = avg_cli, y = rci_sd, size = n_articles)) + # Dodajemo size = n_articles
+  # Dodajemo malo "jittera" da se točke koje su blizu razdvoje
+  geom_jitter(color = "darkred", alpha = 0.7, width = 0.01, height = 0.01) + 
+  
+  geom_text_repel(aes(label = FROM), size = 3.5, max.overlaps = 15) +
+  
+  # KORISTIMO LOGARITAMSKU SKALU za bolju distribuciju
+  scale_x_log10(labels = scales::number_format(accuracy = 0.1)) +
+  scale_y_log10(labels = scales::number_format(accuracy = 0.1)) +
+  
+  scale_size_continuous(range = c(2, 10), name = "Broj članaka") +
+  
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Mapa medijskih strategija konflikta",
+    subtitle = "Pozicija medija temeljena na prosječnoj razini i varijabilnosti konfliktnog jezika",
+    x = "Prosječni indeks konfliktnog jezika (CLI) - 'Kućni Ton' (Log Skala)",
+    y = "Standardna devijacija RCI-a - 'Nepredvidivost' (Log Skala)"
+  )
+```
+
+---
+
+# III.Sinteza: Mreža narativne atmosfere
+
+Konačno, spajamo sve u jednu vizualizaciju. Mreža povezanosti tema prikazuje kako se financijske teme spajaju u šire narativne okvire. Izgled svake veze otkriva atmosferu tih spojeva. Boja veze: prosječni tonalitet (Plavo = pozitivno prema HNB-u).
+Debljina veze: prosječni intenzitet konflikta (Deblje = konfliktnije).Prozirnost veze: pouzdanost veze, tj. broj članaka na kojima se temelji (Tamnije = pouzdanije).
+
+Ova mreža otkriva  strukturu hrvatskog financijskog digitalnog prostora:
+
+"Monetarno-regulatorna arena": Teme poput MONETARNA_POLITIKA, NADZOR_BANAKA, i FINANCIJSKA_STABILNOST čine gust klaster s debelim vezama - ovo je epicentar kritičkih rasprava o HNB-u.
+
+"Operativno-tehnička jezgra": Teme STATISTIKE, PLATNI_PROMET, i KOMUNIKACIJA povezane su tanjim vezama, što ukazuje na manje konfliktan, više tehnički orijentirani diskurs.
+
+
+Euro uvođenje kao mostovna tema: EURO_UVOĐENJE se pozicionira centralno, povezujući oba klastera jer ima i političku i tehničku dimenziju. 
+
+Konflikt kao ključni diferencijator: Najdeblje veze povezuju teme koje izazivaju najviše javnih prijepora - monetarnu politiku s financijskom stabilnošću i nadzorom banaka.
+
+
+
+```{r figure=TRUE, fig.width=12, fig.height=10, warning=FALSE, message=FALSE}
+# --- MODUL ZA MREŽU NARATIVNE ATMOSFERE (ISPRAVLJENA I POBOLJŠANA VERZIJA) ---
+library(widyr)
+library(ggraph)
+library(igraph)
+library(textreg)
+
+
+# 1. KORAK: Izračun frekvencija riječi iz 'nlp_results_df'
+lemmatized_words_with_freq <- nlp_results_df %>%
+  # Brojimo koliko se puta svaka lema pojavljuje u svakom dokumentu
+  count(doc_id, lemma, name = "word_frequency")
+
+# 2. KORAK: Izračun Sentiment Score-a (CroSentilex-Gold)
+document_sentiments_gold <- lemmatized_words_with_freq %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  mutate(
+    sentiment_value = as.numeric(sentiment_value),
+    word_frequency = as.numeric(word_frequency)
+  ) %>%
+  group_by(doc_id) %>%
+  summarise(sentiment_score_gold = sum(sentiment_value * word_frequency, na.rm = TRUE)) %>%
+  ungroup()
+
+
+# 3. KORAK: Izračun Indeksa Konfliktnog Jezika (CLI)
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c("laž", "skandal", "napad", "radikalan", "ideologija", "licemjerje", "sramotno", "mržnja", "podjela", "raskol", "manipulacija", "propaganda", "ekstrem", "kontroverz", "sukob", "kriza")
+))
+
+cli_scores <- lemmatized_words_with_freq %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    total_words = sum(word_frequency),
+    conflict_words = sum(word_frequency[is_conflict])
+  ) %>%
+  mutate(cli = (conflict_words / total_words) * 1000) %>%
+  ungroup()
+
+# 4. KORAK: Spajanje SVIH metrika u jedan 'dta_final' dataframe
+dta_final <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(cli_scores %>% select(doc_id, cli), by = "doc_id") %>%
+  mutate(
+    sentiment_score_gold = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    cli = ifelse(is.na(cli), 0, cli)
+  )
+
+
+# 5. KORAK: Izračun Relativnog Indeksa Konflikta (RCI)
+avg_cli_media <- dta_final %>% group_by(FROM) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_final %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_final <- dta_final %>%
+  left_join(avg_cli_media, by = "FROM") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+
+
+# --- ANALIZA MREŽE NARATIVNE ATMOSFERE ---
+
+# 6. KORAK: Identifikacija dokumenata s više tema
+mixed_topic_docs <- dta_final %>%
+  select(doc_id, starts_with("norm_")) %>%
+  pivot_longer(-doc_id, names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 1.5) %>%
+  add_count(doc_id) %>%
+  filter(n >= 2) %>%
+  select(doc_id, topic)
+
+# 7. KORAK: Izoliranje atmosfere za relevantne dokumente
+atmosphere_of_mixed_docs <- dta_final %>%
+  filter(doc_id %in% unique(mixed_topic_docs$doc_id)) %>%
+  select(doc_id, sentiment_score = sentiment_score_gold, rci)
+
+# 8. KORAK: Efikasno računanje ko-okurencija i atmosfere parova
+pair_data <- mixed_topic_docs %>%
+  inner_join(atmosphere_of_mixed_docs, by = "doc_id")
+
+narrative_pairs <- pair_data %>%
+  pairwise_count(item = topic, feature = doc_id, upper = FALSE)
+
+
+# document_topic_pairs <- pair_data %>%
+#   # Stvaramo parove unutar svakog dokumenta
+#   pairwise_count(item = topic, feature = doc_id, upper = FALSE) %>%
+#   # Spajamo s originalnim podacima da bismo dobili atmosferu za svaki DOKUMENT u kojem se par pojavio
+#   inner_join(atmosphere_of_mixed_docs, by = c("feature" = "doc_id"))
+
+
+narrative_pair_data <- dta_final %>%
+  # Odabiremo samo potrebne stupce
+  select(doc_id, sentiment_score_gold, rci, starts_with("norm_")) %>%
+  # Pretvaramo u dugi format
+  pivot_longer(
+    cols = starts_with("norm_"),
+    names_to = "topic",
+    values_to = "intensity"
+  ) %>%
+  # Uklanjamo prefiks 'norm_'
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  # Zadržavamo samo jake teme
+  filter(intensity > 1.5) %>%
+  # KLJUČNI DIO: Spajamo dataframe sam sa sobom da stvorimo parove
+  inner_join(., ., by = "doc_id") %>%
+  # Zadržavamo samo jedinstvene parove (npr. izbjegavamo A-B i B-A)
+  filter(topic.x < topic.y) %>%
+  # Sada imamo dataframe gdje svaki redak predstavlja par tema u jednom dokumentu
+  # i imamo atmosferu tog dokumenta
+  select(doc_id, 
+         item1 = topic.x, 
+         item2 = topic.y, 
+         sentiment_score = sentiment_score_gold.x, # .x jer su se imena duplicirala
+         rci = rci.x)
+
+
+graph_data <- narrative_pair_data %>%
+  group_by(item1, item2) %>%
+  summarise(
+    n = n(), # Brojimo koliko se puta par pojavio
+    avg_sentiment = mean(sentiment_score, na.rm = TRUE),
+    avg_rci = mean(rci, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(n > 10) # Zadržavamo samo parove s dovoljno članaka
+
+
+
+set.seed(123)
+graph_from_data_frame(graph_data, directed = FALSE) %>%
+  ggraph(layout = "fr") +
+    geom_edge_fan(
+      aes(
+        color = avg_sentiment, 
+        width = avg_rci,
+        alpha = n
+      ), 
+      arrow = NULL
+    ) +
+    geom_node_point(color = "black", size = 10) +
+    geom_node_text(aes(label = str_wrap(name, 15)), color = "black", size = 3.5) +
+    scale_edge_color_gradient2(
+      low = "firebrick", mid = "lightgrey", high = "steelblue", midpoint = 0, 
+      name="Prosj. sentiment\nnarativnog okvira"
+    ) +
+    scale_edge_width(
+      range = c(1, 4), 
+      name="Prosj. intenzitet konflikta (RCI)"
+    ) +
+    scale_edge_alpha(
+      range = c(0.3, 1),
+      name = "Broj članaka\n(Pouzdanost veze)"
+    ) +
+    theme_graph(base_family = "sans") +
+    labs(
+      title = "Mreža narativne atmosfere",
+      subtitle = "Boja veze = tonalitet | Debljina veze = konflikt | Prozirnost veze = oouzdanost"
+    )
+
+
+
+
+
+```
+
+
+
+## Zaključak
+
+
+Dubinska analiza atmosfere HNB digitalnog prostora u Hrvatskoj otkrila je sofisticiranu sliku koja nadilazi jednostavnu podjelu na "pozitivno" i "negativno" izvještavanje o centralnoj banci. Naši nalazi ukazuju na postojanje strateškog emocionalnog uokvirivanja financijskih tema i dubokih strukturnih obrazaca u javnom diskursu o monetarnoj politici.
+
+Tri ključna zaključka se ističu:
+
+Kontekstualno oblikovanje financijskog tonaliteta: Pokazali smo da tonalitet prema HNB-u nije inherentno svojstvo teme, već rezultat strateškog emocionalnog uokvirivanja. Monetarna politika može biti predstavljena pozitivno kroz okvire Povjerenja u stabilnost ili negativno kroz Strah od inflacije.
+
+Četiri modela financijskog novinarstva: Identificirali smo različite medijske strategije u pristupu HNB-u - od "strateških kritičara" koji doziraju kritiku do "institucionalnih podržavatelja" koji dosljedno podržavaju centralnu banku.
+
+Dva diskursna svijeta: Najvažniji nalaz jest postojanje monetarno-regulatorne arene (visok konflikt) i operativno-tehničke jezgre (nizak konflikt) kao dva odvojena prostora financijskog diskursa.
+
+Ovi nalazi pokazuju da je za razumijevanje javnog mnijenja o HNB-u nužno analizirati ne samo što se govori, već kako se govori - koje se emocionalne strategije koriste za oblikovanje percepcije centralne banke u javnosti.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
