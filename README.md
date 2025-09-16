@@ -15,21 +15,21 @@ Svako izvješće je interaktivno i gradi se na prethodnom, pružajući sve dublj
 
 Ovdje možete pristupiti svakoj od četiri faze istraživanja.
 
-### Faza 1: Mapa Medijskog Ekosustava
+### Faza 1: (Mapa Medijskog Ekosustava)[https://raw.githack.com/lusiki/HNB-Media-Map/main/Mapa.html]
 
-    Odgovara na temeljna pitanja: TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. Analizira ključne aktere (od dužnosnika i političara do neovisnih analitičara), dominantne platforme i dinamiku njihovog utjecaja.
+  Odgovara na temeljna pitanja: TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. Analizira ključne aktere (od dužnosnika i političara do neovisnih analitičara), dominantne platforme i dinamiku njihovog utjecaja.
 
 ### Faza 2: Anatomija Diskursa
 
-    Istražuje O ČEMU se govori. Kroz tematsku analizu, izvješće identificira i mjeri ključne teme u raspravama o HNB-u, poput monetarne politike, uvođenja eura, financijske stabilnosti i javne percepcije.
+  Istražuje O ČEMU se govori. Kroz tematsku analizu, izvješće identificira i mjeri ključne teme u raspravama o HNB-u, poput monetarne politike, uvođenja eura, financijske stabilnosti i javne percepcije.
 
 ### Faza 3: Atmosfera Diskursa
 
-    Analizira KAKO se o HNB-u govori. Mjeri emocionalni ton (npr. stručan, kritičan, neutralan), razinu konflikta u jeziku i dominantne narativne okvire koji oblikuju javnu percepciju rada središnje banke.
+  Analizira KAKO se o HNB-u govori. Mjeri emocionalni ton (npr. stručan, kritičan, neutralan), razinu konflikta u jeziku i dominantne narativne okvire koji oblikuju javnu percepciju rada središnje banke.
 
 ### Faza 4: Digitalni Odjeci
 
-    Proučava KADA i ZAŠTO se diskurs o HNB-u intenzivira. Modelira kako ključni događaji—poput promjene kamatnih stopa, objave prognoza o inflaciji ili uvođenja eura—utječu na volumen, atmosferu i fokus online rasprava.
+  Proučava KADA i ZAŠTO se diskurs o HNB-u intenzivira. Modelira kako ključni događaji—poput promjene kamatnih stopa, objave prognoza o inflaciji ili uvođenja eura—utječu na volumen, atmosferu i fokus online rasprava.
 
 
 
@@ -39,11 +39,11 @@ Ovdje možete pristupiti svakoj od četiri faze istraživanja.
 
 Ova analiza je dio projekta mapiranja medijskog prostora ključnih hrvatskih institucija.
 
-    Izvor: Baza podataka od preko 25 mil medijskih objava.
+  Izvor: Baza podataka od preko 25 mil medijskih objava.
 
-    Razdoblje: 1. siječnja 2021. – 31. prosinca 2024.
+  Razdoblje: 1. siječnja 2021. – 31. prosinca 2024.
 
-    Metodologija: Kombinacija mrežne analize, obrade prirodnog jezika (NLP), tematskog modeliranja i analize sentimenta.
+  Metodologija: Kombinacija mrežne analize, obrade prirodnog jezika (NLP), tematskog modeliranja i analize sentimenta.
     
     
     
@@ -51,6 +51,6 @@ Kontakt
 
 Za sva pitanja, prijedloge ili komentare, slobodno me kontaktirajte.
 
-    Autor: [Luka Šikić]
+  Autor: [Luka Šikić]
 
-    Email: [luka.sikic@unicath.hr]
+  Email: [luka.sikic@unicath.hr]

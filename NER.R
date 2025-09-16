@@ -122,7 +122,7 @@ final_annotated_data <- udpipe_annotate_in_batches_and_save(
   batch_size = 500,
   cores = parallel::detectCores() - 1,
   output_dir = "D:/Luka/HNB/Language model sample",
-  resume = FALSE
+  resume = TRUE
 )
 
 
