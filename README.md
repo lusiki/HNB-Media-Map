@@ -24,7 +24,7 @@ Ovdje možete pristupiti svakoj od četiri faze istraživanja.
 
 Odgovara na pitanja TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. Analizira ključne aktere — od dužnosnika i političara do neovisnih analitičara — te identificira dominantne platforme i dinamiku njihovog utjecaja na javni diskurs.
 
-### Faza 2: [Anatomija diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Mapa.html)
+### Faza 2: [Anatomija diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme.html)
 
 Istražuje O ČEMU se govori. Kroz detaljnu tematsku analizu identificira i kvantificira ključne teme u raspravama o HNB-u, uključujući monetarnu politiku, uvođenje eura, financijsku stabilnost i javnu percepciju institucije.
 
