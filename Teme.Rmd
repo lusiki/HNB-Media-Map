@@ -444,15 +444,66 @@ topic_trends_guided <- dta_with_themes %>%
   filter(any(share >= 0.05)) %>%
   ungroup()
 
-ggplot(topic_trends_guided, aes(x = year, y = share, color = topic, group = topic)) +
+# ggplot(topic_trends_guided, aes(x = year, y = share, color = topic, group = topic)) +
+#   geom_line(linewidth = 1.5) +
+#   geom_point(size = 3) +
+#   scale_y_continuous(labels = scales::percent_format()) +
+#   scale_x_continuous(breaks = c(2021, 2022, 2023)) +
+#   labs(title = "Promjena zastupljenosti glavnih tema (iznad 5% udjela)",
+#        x = "Godina", y = "Udio teme u korpusu svih tekstova", color = "Tema") +
+#   theme_minimal(base_size = 14) +
+#   theme(legend.position = "bottom")
+
+
+library(ggrepel)
+library(dplyr)
+
+# 1. Prepare clean labels as in Solution 2
+topic_trends_clean <- topic_trends_guided %>%
+  mutate(topic = str_replace_all(topic, "_", " ") %>% str_to_title())
+
+# 2. Create a data frame for the labels at the end of the lines
+labels_data <- topic_trends_clean %>%
+  filter(year == max(year))
+
+# 3. Create the plot
+ggplot(topic_trends_clean, aes(x = year, y = share, color = topic, group = topic)) +
   geom_line(linewidth = 1.5) +
   geom_point(size = 3) +
   scale_y_continuous(labels = scales::percent_format()) +
-  scale_x_continuous(breaks = c(2021, 2022, 2023)) +
+  scale_x_continuous(breaks = c(2021, 2022, 2023), expand = expansion(add = c(0, 0.5))) + # Add space for labels
+  
+  # Add the labels directly to the plot
+  geom_label_repel(
+    data = labels_data,
+    aes(label = topic),
+    nudge_x = 0.2,
+    direction = "y",
+    hjust = 0,
+    segment.color = "grey50",
+    size = 4
+  ) +
+  
   labs(title = "Promjena zastupljenosti glavnih tema (iznad 5% udjela)",
-       x = "Godina", y = "Udio teme u korpusu svih tekstova", color = "Tema") +
+       x = "Godina", y = "Udio teme u korpusu") +
   theme_minimal(base_size = 14) +
-  theme(legend.position = "bottom")
+  theme(legend.position = "none") # <-- Remove the legend
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```
 
 
