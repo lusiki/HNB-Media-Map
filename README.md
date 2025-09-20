@@ -40,3 +40,11 @@ Proučava KADA i ZAŠTO se diskurs o HNB-u intenzivira. Modelira kako ključni d
 ##
 
 Svako izvješće je interaktivno i omogućuje detaljno istraživanje podataka, pružajući korisnicima mogućnost samostalnog analiziranja medijskog diskursa o Hrvatskoj središnjoj banci.
+
+
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------
+(.beta;in developement)
+[Imena]()
+----------------------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------------

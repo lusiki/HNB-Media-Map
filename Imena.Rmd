@@ -1,0 +1,888 @@
+---
+title: "Imena Hrvatske narodne banke"
+author: "Istraživački tim projekta, Hrvatsko katoličko sveučilište"
+date: "22. kolovoza 2025."
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: flatly
+    code_folding: hide
+---
+
+```{r setup, include=FALSE}
+# --- Globalne postavke ---
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 12, fig.height = 7, dpi = 200)
+```
+
+```{r libraries, include=FALSE}
+# --- Učitavanje svih potrebnih paketa ---
+library(scales)
+library(patchwork)
+library(dplyr)
+library(tidytext)
+library(stringr)
+library(ggplot2)
+library(forcats)
+library(tidyr)
+library(widyr)
+library(ggraph)
+library(igraph)
+library(data.table)
+library(readxl)
+library(ggrepel)
+
+```
+
+
+
+
+```{r lexicons, include=FALSE, eval=FALSE}
+# read in lexicons
+CroSentilex_n <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
+                                   header = FALSE,
+                                   sep = " ",
+                                   stringsAsFactors = FALSE,
+                                   fileEncoding = "UTF-8")  %>%
+                   rename(word = "V1", sentiment = "V2" ) %>%
+                   mutate(brija = "NEG")
+
+CroSentilex_p  <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-positives.txt",
+                                   header = FALSE,
+                                   sep = " ",
+                                   stringsAsFactors = FALSE,
+                                   fileEncoding = "UTF-8") %>%
+                    rename(word = "V1", sentiment = "V2" ) %>%
+                    mutate(brija = "POZ")
+
+crosentilex  <- rbind(setDT(CroSentilex_n), setDT(CroSentilex_p))
+# # check lexicon data 
+# #head(sample_n(Crosentilex_sve,1000),15)
+# 
+#  
+CroSentilex_Gold  <- read.delim2("C:/Users/Lukas/Dropbox/Mislav@Luka/gs-sentiment-annotations.txt",
+                                 header = FALSE,
+                                 sep = " ",
+                                 stringsAsFactors = FALSE) %>%
+                    rename(word = "V1", sentiment = "V2" )
+ # Encoding(CroSentilex_Gold$word) <- "UTF-8"
+ # CroSentilex_Gold[1,1] <- "dati"
+ # CroSentilex_Gold$sentiment <- str_replace(CroSentilex_Gold$sentiment , "-", "1")
+ # CroSentilex_Gold$sentiment <- str_replace(CroSentilex_Gold$sentiment , "\\+", "2")
+ # CroSentilex_Gold$sentiment <- as.numeric(unlist(CroSentilex_Gold$sentiment))
+# check lexicon data 
+#head(sample_n(CroSentilex_Gold,100),15)
+crosentilex_gold_prepared <- CroSentilex_Gold %>%
+  mutate(
+    sentiment_value = case_when(
+      sentiment == 2 ~ 1,   # Pozitivno
+      sentiment == 1 ~ -1,  # Negativno
+      TRUE ~ 0              # Neutralno
+    )
+  ) %>%
+  select(word, sentiment_value)
+
+ 
+nrc_lexicon  <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean.xlsx", sheet = "Sheet1") %>% select (-"...1")
+
+
+# Prvo definiramo "rječnik" za prevođenje
+emotion_translator_hr <- c(
+  "Anger"        = "Ljutnja",
+  "Anticipation" = "Iščekivanje",
+  "Disgust"      = "Gađenje",
+  "Fear"         = "Strah",
+  "Joy"          = "Radost",
+  "Sadness"      = "Tuga",
+  "Surprise"     = "Iznenađenje",
+  "Trust"        = "Povjerenje"
+  # Ne trebamo 'Positive' i 'Negative' jer ih ionako filtriramo
+)
+
+# Sada modificiramo originalni cjevovod
+nrc_lexicon_long <- nrc_lexicon %>%
+  rename(word = HR) %>% 
+  pivot_longer(
+    cols = -word,
+    names_to = "emotion",
+    values_to = "value"
+  ) %>%
+  filter(value == 1) %>%
+  select(word, emotion) %>%
+  # Filtriramo opće sentimente PRIJE prevođenja
+  filter(emotion != "Positive" & emotion != "Negative") %>%
+  # DODAJEMO NOVI KORAK: Prevođenje stupca 'emotion'
+  mutate(emotion = recode(emotion, !!!emotion_translator_hr))
+
+nrc_lexicon_long_ <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean_long.xlsx", sheet = "Sheet1") %>% select (-"...1") 
+
+```
+
+
+```{r load-lexicons}
+# --- FAZA 1: UČITAVANJE I PRIPREMA SVIH LEKSIKONA ---
+# Ovaj chunk učitava sve potrebne jezične resurse i pretvara ih u "uredan" (tidy)
+# format spreman za spajanje s lingvističkim podacima.
+# Ključni koraci su forsiranje UTF-8 kodiranja i standardizacija formata.
+
+# --- 1.1: CroSentilex (fina skala sentimenata) ---
+# Učitavamo pozitivne i negativne liste i odmah ih spajamo u jedan leksikon
+# sa standardiziranom numeričkom skalom.
+crosentilex_full <- bind_rows(
+  # Učitavanje negativnih riječi
+  read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
+             header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+    rename(word = "V1", sentiment_value = "V2") %>%
+    mutate(sentiment_value = -sentiment_value), # Pretvaramo score u negativan
+  
+  # Učitavanje pozitivnih riječi
+  read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-positives.txt",
+             header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+    rename(word = "V1", sentiment_value = "V2") # Score je već pozitivan
+) %>%
+  as_tibble() # Pretvaramo u tibble radi bolje konzistentnosti
+
+# --- 1.2: CroSentilex-Gold (kategorički sentiment) ---
+# Učitavamo "zlatni standard" i pretvaramo tekstualne oznake u numeričku skalu (-1, 0, 1).
+crosentilex_gold_prepared <- read.delim2("C:/Users/Lukas/Dropbox/Mislav@Luka/gs-sentiment-annotations.txt",
+                                         header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+  rename(word = "V1", sentiment_str = "V2") %>%
+  mutate(
+    sentiment_value = case_when(
+      sentiment_str == "+" ~ 1,
+      sentiment_str == "-" ~ -1,
+      TRUE ~ 0
+    )
+  ) %>%
+  select(word, sentiment_value) %>%
+  as_tibble()
+
+# --- 1.3: NRC Leksikon Emocija (za psihološke procese) ---
+# Učitavamo NRC leksikon, pretvaramo ga u "dugi" format i prevodimo na hrvatski.
+nrc_lexicon_raw <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean.xlsx", sheet = "Sheet1") %>% 
+                   select(-"...1") %>%
+                   rename(word = HR)
+
+# Rječnik za prevođenje engleskih naziva emocija
+emotion_translator_hr <- c(
+  "Anger" = "Ljutnja", "Anticipation" = "Iščekivanje", "Disgust" = "Gađenje",
+  "Fear" = "Strah", "Joy" = "Radost", "Sadness" = "Tuga",
+  "Surprise" = "Iznenađenje", "Trust" = "Povjerenje"
+)
+
+# Transformacija u dugi, prevedeni format
+nrc_lexicon_long <- nrc_lexicon_raw %>% 
+  pivot_longer(
+    cols = all_of(names(emotion_translator_hr)), # Koristimo samo 8 glavnih emocija
+    names_to = "emotion",
+    values_to = "value"
+  ) %>%
+  filter(value == 1) %>% # Zadržavamo samo postojeće veze riječ-emocija
+  mutate(emotion = recode(emotion, !!!emotion_translator_hr)) %>% # Prevodimo na hrvatski
+  select(word, emotion)
+
+# --- Provjera Učitanih Leksikona (opcionalno) ---
+# print("Primjer CroSentilex-Full:")
+# print(head(crosentilex_full))
+# print("Primjer CroSentilex-Gold Prepared:")
+# print(head(crosentilex_gold_prepared))
+# print("Primjer NRC Long:")
+# print(head(nrc_lexicon_long))
+```
+
+
+```{r data-preparation___, include=FALSE, eval=T}
+# --- Priprema podataka (izvršava se u pozadini) ---
+
+# Učitavanje glavne baze podataka
+# remove titkok from SOURCE_TYPE
+dta <- readRDS("./hnb.rds") %>%
+  mutate(
+    DATE = as.Date(DATE), # Convert the column to Date class first
+    year = as.integer(format(DATE, "%Y"))
+  ) %>%
+  filter(SOURCE_TYPE != "tiktok") %>%
+  mutate(
+    SOURCE_TYPE = factor(SOURCE_TYPE, levels = c("web", "youtube", "facebook", "twitter", "reddit", "forum", "comment"))
+  ) %>%
+  #remove year 2024
+  filter(DATE >= as.Date("2021-01-01") & DATE < as.Date("2024-01-01")) %>%
+  filter(year != 2024) %>%
+  mutate(doc_id = row_number())
+
+
+
+# Kreiranje stratificiranog uzorka
+# sample_proportion <- 0.05
+# set.seed(123)
+# dta_stratified_sample <- dta %>%
+#   filter(nchar(FULL_TEXT) > 100) %>%
+#   group_by(year, SOURCE_TYPE) %>%
+#   slice_sample(prop = sample_proportion) %>%
+#   ungroup() %>%
+#   mutate(doc_id = row_number())
+
+# Učitavanje prethodno obrađenih lingvističkih podataka (štedi vrijeme)
+files <- list.files("D:/LUKA/HNB/Language model sample", full.names = TRUE, pattern = "\\.rds")
+nlp_results_df <- lapply(files, readRDS) %>%
+  bind_rows() %>%
+  mutate(doc_id = as.integer(doc_id))
+```
+
+
+```{r data-preparation, include=FALSE, eval=T}
+
+
+all_names_df <- nlp_results_df %>%
+  filter(upos == "PROPN") %>%
+  select(doc_id, name = lemma)
+
+# Display the most frequently mentioned names across the entire corpus
+all_names_df %>%
+  count(name, sort = TRUE)
+
+
+
+```
+
+
+```{r data-preparation_, include=FALSE, eval=T}
+
+full_name_pairs <- nlp_results_df %>%
+  # IMPORTANT: We must group by document to avoid connecting the last word
+  # of one document with the first word of the next.
+  group_by(doc_id) %>%
+  mutate(
+    # Create two new columns: the lemma of the NEXT word and its part-of-speech tag
+    next_lemma = lead(lemma),
+    next_upos = lead(upos)
+  ) %>%
+  # Now, filter for rows where BOTH the current word and the next word are proper nouns
+  filter(upos == "PROPN" & next_upos == "PROPN") %>%
+  # We can also add a basic filter to remove very short, likely noisy words
+  filter(nchar(lemma) > 1 & nchar(next_lemma) > 1) %>%
+  # Ungroup to perform the final count
+  ungroup() %>%
+  # Combine the current lemma and the next lemma to create the full name
+  transmute(full_name = paste(lemma, next_lemma))
+
+
+# Now, count the frequency of each unique full name
+full_name_counts <- full_name_pairs %>%
+  count(full_name, sort = TRUE)
+
+
+
+
+
+# --- Define keywords that indicate an entity is NOT a person ---
+
+# 1. Organizational & Institutional Keywords
+stop_words_org <- c(
+  "vlada", "hnb", "banka", "Sberbank", "Austria", "raiffeisenbank",
+  "ministarstvo", "savjet", "agencija", "hina", "zavod", "udruga",
+  "rh", "republika", "tvrtka", "komora", "sud", "factoring", "HNB", "RH", "Media", "news"
+)
+
+# 2. Geographical Keywords
+stop_words_loc <- c(
+  "Brod", "Crna Gora", "Hrvatska", "hrvatske", "hrvatski", "grad", "slavonski"
+)
+
+# 3. Conceptual & Miscellaneous Keywords
+stop_words_concepts <- c(
+  "mba", "media", "specialist", "news", "plus", "portal", "Index"
+)
+
+# --- Combine all stop-words into a single list for filtering ---
+all_stop_words <- c(stop_words_org, stop_words_loc, stop_words_concepts)
+
+# Create a single regular expression pattern from the list.
+# The `\\b` ensures we match whole words only.
+stop_word_pattern <- paste0("\\b(", paste(all_stop_words, collapse = "|"), ")\\b")
+
+# --- Apply the filters to your dataframe ---
+cleaned_full_name_counts <- full_name_counts %>%
+  filter(
+    # 1. Remove names containing any of our stop-words (case-insensitive)
+    !str_detect(full_name, regex(stop_word_pattern, ignore_case = TRUE)) &
+
+    # 2. Remove any names that contain a digit
+    !str_detect(full_name, "\\d")
+  )
+
+# Now, `cleaned_full_name_counts` contains a much cleaner list of names.
+# knitr::kable(head(cleaned_full_name_counts, 20))
+
+# Visualize the top 25 full names
+cleaned_full_name_counts %>%
+  slice_max(order_by = n, n = 40) %>%
+  ggplot(aes(x = n, y = fct_reorder(full_name, n))) +
+  geom_col(fill = "darkgreen", alpha = 0.8) +
+  theme_minimal(base_size = 12) +
+  labs(
+    title = "Top 25 Most Frequently Mentioned Full Names",
+    subtitle = "Identified by finding consecutive proper nouns in the text",
+    x = "Total Number of Mentions",
+    y = "Full Name"
+  )
+
+
+
+
+
+
+```
+
+
+
+```{r}
+# --- 1. Extract All Occurrences of Full Names (with doc_id) ---
+# We modify the original code to KEEP the doc_id for each occurrence.
+full_name_occurrences <- nlp_results_df %>%
+  group_by(doc_id) %>%
+  mutate(
+    next_lemma = lead(lemma),
+    next_upos = lead(upos)
+  ) %>%
+  filter(upos == "PROPN" & next_upos == "PROPN") %>%
+  filter(nchar(lemma) > 1 & nchar(next_lemma) > 1) %>%
+  ungroup() %>%
+  # Create the full name and KEEP the doc_id
+  transmute(
+    doc_id,
+    full_name = paste(lemma, next_lemma)
+  )
+
+# --- 2. Define Stop-Words and Clean the List of Occurrences ---
+# Your list of stop-words
+# all_stop_words <- c(
+#   "vlada", "hnb", "banka", "Sberbank", "Austria", "raiffeisenbank",
+#   "ministarstvo", "savjet", "agencija", "hina", "zavod", "udruga",
+#   "rh", "republika", "tvrtka", "komora", "sud", "factoring",
+#   "Brod", "Crna Gora", "Hrvatska", "hrvatske", "hrvatski", "grad", "slavonski",
+#   "mba", "media", "specialist", "news", "plus", "portal", "Index"
+# )
+stop_word_pattern <- paste0("\\b(", paste(all_stop_words, collapse = "|"), ")\\b")
+
+# Apply the filter directly to the occurrences dataframe
+cleaned_full_name_occurrences <- full_name_occurrences %>%
+  filter(
+    !str_detect(full_name, regex(stop_word_pattern, ignore_case = TRUE)) &
+    !str_detect(full_name, "\\d")
+  )
+
+# --- 3. Join with Main Dataset to Get Source Information ---
+# This step links each clean name mention to its source type and specific outlet
+full_names_with_source_info <- cleaned_full_name_occurrences %>%
+  # We only need a few columns from dta_final for this analysis
+  left_join(dta %>% select(doc_id, SOURCE_TYPE, FROM), by = "doc_id") %>%
+  filter(!is.na(SOURCE_TYPE)) # Remove any mentions without a source
+
+# --- 4. Analyze and Visualize Frequency by Source Type ---
+# This answers: "On which platforms are these people mentioned?"
+
+# First, find the top 8 most mentioned people from our clean list
+top_full_names <- full_names_with_source_info %>%
+  count(full_name, sort = TRUE) %>%
+  slice_head(n = 8) %>%
+  pull(full_name)
+
+# Now, visualize the source breakdown for these top individuals
+full_names_with_source_info %>%
+  filter(full_name %in% top_full_names) %>%
+  count(full_name, SOURCE_TYPE) %>%
+  ggplot(aes(x = n, y = SOURCE_TYPE, fill = SOURCE_TYPE)) +
+    geom_col(show.legend = FALSE) +
+    facet_wrap(~ full_name) +
+    theme_minimal() +
+    labs(
+      title = "Source Type Breakdown for Top Mentioned Full Names",
+      subtitle = "Distribution of mentions across different platform types",
+      x = "Number of Mentions",
+      y = "Source Type"
+    )
+
+# --- 5. Analyze and Visualize by Specific Media Outlet ---
+# This answers: "Which specific media outlets talk about Boris Vujčić the most?"
+
+# Let's use the top name from our list as an example
+top_person <- top_full_names[1]
+
+full_names_with_source_info %>%
+  filter(full_name == top_person) %>%
+  count(FROM, name = "mention_count") %>%
+  slice_max(order_by = mention_count, n = 15) %>%
+  ggplot(aes(x = mention_count, y = fct_reorder(FROM, mention_count))) +
+    geom_col(fill = "steelblue") +
+    theme_minimal() +
+    labs(
+      title = paste("Top 15 Media Outlets Mentioning", tools::toTitleCase(top_person)),
+      x = "Number of Mentions",
+      y = "Media Outlet"
+    )
+```
+
+
+
+
+```{r}
+
+# --- Step 1.1: Define the Conflict Lexicon ---
+# This is a list of words associated with conflict, criticism, and crisis.
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c("kriza", "kolaps", "neuspjeh", "pogreška", "kritika", "neodgovorno", "rizično", 
+    "zabrinjavajuće", "nestabilno", "problematično", "kontroverzno", "sporno", 
+    "sumnjivo", "loš", "katastrofal", "kaotičan", "recesija", "inflacija", 
+    "deflacija", "bankrot")
+))
+
+# --- Step 1.2: Get Word Frequencies per Document ---
+# (This may be a re-run of a step from your original script)
+lemmatized_words_with_freq <- nlp_results_df %>%
+  count(doc_id, lemma, name = "word_frequency")
+
+# --- Step 1.3: Calculate CLI Score for each document ---
+cli_scores <- lemmatized_words_with_freq %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    total_words = sum(word_frequency),
+    conflict_words = sum(word_frequency[is_conflict]),
+    .groups = "drop"
+  ) %>%
+  # CLI is the number of conflict words per 1000 total words.
+  mutate(cli = (conflict_words / total_words) * 1000) %>%
+  # Handle documents with no words by replacing NA with 0
+  mutate(cli = if_else(is.na(cli), 0, cli)) %>%
+  select(doc_id, cli)
+
+
+
+# --- Create the Foundational Dataset ---
+
+# 1. Create the sentiment_score from your base 'dta' table
+dta_with_sentiment <- dta %>%
+  mutate(
+    sentiment_score = case_when(
+      MANUAL_SENTIMENT == "positive" ~ 1,
+      MANUAL_SENTIMENT == "negative" ~ -1,
+      MANUAL_SENTIMENT == "neutral"  ~ 0,
+      AUTO_SENTIMENT == "positive"   ~ 1,
+      AUTO_SENTIMENT == "negative"   ~ -1,
+      AUTO_SENTIMENT == "neutral"    ~ 0,
+      TRUE                           ~ 0
+    )
+  )
+
+# 2. Join sentiment and cli scores to your main dta frame
+dta_enriched <- dta_with_sentiment %>%
+  left_join(cli_scores, by = "doc_id") %>%
+  # Fill in 0 for any documents that didn't get a CLI score
+  mutate(cli = if_else(is.na(cli), 0, cli))
+
+# 3. Join with your cleaned full names to create the final analytical dataset
+full_names_analytical_df <- cleaned_full_name_occurrences %>%
+  inner_join(
+    dta_enriched %>% select(doc_id, sentiment_score, cli, SOURCE_TYPE, FROM, DATE),
+    by = "doc_id"
+  ) %>%
+  mutate(year = year(DATE))
+
+
+# --- Re-run: Analyze the "Atmosphere" Around Each Name ---
+# This will now work perfectly.
+
+name_atmosphere_summary <- full_names_analytical_df %>%
+  group_by(full_name) %>%
+  summarise(
+    frequency = n(),
+    avg_sentiment = mean(sentiment_score, na.rm = TRUE),
+    avg_cli = mean(cli, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(frequency >= 200) %>%
+  arrange(desc(frequency))
+
+# Visualize the atmosphere map
+ggplot(name_atmosphere_summary, aes(x = avg_sentiment, y = avg_cli)) +
+  geom_point(aes(size = frequency), color = "darkred", alpha = 0.6) +
+  ggrepel::geom_text_repel(aes(label = full_name), size = 3.5, max.overlaps = 15) +
+  scale_size_continuous(range = c(3, 15), name = "Frequency of Mentions") +
+  theme_minimal() +
+  labs(
+    title = "Discourse Atmosphere Map of Key Individuals",
+    subtitle = "Positioning public figures by average sentiment and conflict intensity",
+    x = "Average Sentiment (← Negative | Positive →)",
+    y = "Average Conflict Intensity (CLI)"
+  )
+```
+
+
+
+```{r}
+# Find the top 10 most mentioned full names for each year
+name_trends_by_year <- full_names_analytical_df %>%
+  count(year, full_name) %>%
+  group_by(year) %>%
+  slice_max(order_by = n, n = 10) %>%
+  ungroup()
+
+# Visualize the changing prominence
+ggplot(name_trends_by_year, aes(x = n, y = reorder_within(full_name, n, year), fill = as.factor(year))) +
+  geom_col(show.legend = FALSE) +
+  scale_y_reordered() +
+  facet_wrap(~ year, scales = "free_y") +
+  theme_minimal() +
+  labs(
+    title = "Top 10 Most Mentioned Individuals by Year",
+    subtitle = "Showing the shifting focus of the discourse over time",
+    x = "Number of Mentions",
+    y = ""
+  )
+```
+
+
+```{r}
+# First, find the most mentioned person overall to use as an example
+top_person <- full_names_analytical_df %>%
+  count(full_name, sort = TRUE) %>%
+  slice(1) %>%
+  pull(full_name)
+
+# Now, find the top 15 outlets that mention this person
+full_names_analytical_df %>%
+  filter(full_name == top_person) %>%
+  count(FROM, name = "mention_count") %>%
+  slice_max(order_by = mention_count, n = 15) %>%
+  ggplot(aes(x = mention_count, y = fct_reorder(FROM, mention_count))) +
+    geom_col(fill = "steelblue") +
+    theme_minimal() +
+    labs(
+      title = paste("Top 15 Media Outlets Mentioning", tools::toTitleCase(top_person)),
+      x = "Number of Mentions",
+      y = "Media Outlet"
+    )
+```
+
+
+```{r}
+# Join the reach and interaction data from the original 'dta' dataframe
+reach_analysis_df <- full_names_analytical_df %>%
+  # We need to join back to the original dta to get REACH and INTERACTIONS
+  inner_join(dta %>% select(doc_id, REACH, INTERACTIONS), by = "doc_id")
+
+# Summarize the data for each person
+reach_summary <- reach_analysis_df %>%
+  group_by(full_name) %>%
+  summarise(
+    total_mentions = n(),
+    # Sum the potential reach for every mention
+    total_reach = sum(REACH, na.rm = TRUE),
+    # Sum all interactions (likes, comments, shares)
+    total_interactions = sum(INTERACTIONS, na.rm = TRUE)
+  ) %>%
+  arrange(desc(total_reach))
+
+# Display a table of the top 15 individuals by potential reach
+cat("Top 15 Individuals by Potential Media Reach\n")
+knitr::kable(head(reach_summary, 15))
+```
+
+
+```{r , eval=FALSE}
+library(igraph)
+library(ggraph)
+
+# --- 1. Map the Network of Connections ---
+# Find which full names are mentioned together in the same documents.
+# We use 'cleaned_full_name_occurrences' which contains doc_id and full_name.
+name_pairs_network <- cleaned_full_name_occurrences %>%
+  widyr::pairwise_count(item = full_name, feature = doc_id, sort = TRUE) %>%
+  # Filter for stronger connections to keep the graph clean
+  filter(n >= 5)
+
+# --- 2. Create the Network and Identify Key Players (Centrality) ---
+network_graph_full_names <- graph_from_data_frame(d = name_pairs_network, directed = FALSE)
+V(network_graph_full_names)$degree <- degree(network_graph_full_names, mode = "all")
+V(network_graph_full_names)$betweenness <- betweenness(network_graph_full_names, directed = FALSE)
+
+# --- 3. Find Conversational Clusters (Community Detection) ---
+communities <- cluster_louvain(network_graph_full_names)
+V(network_graph_full_names)$community <- communities$membership
+
+# --- 4. Visualize the Discourse Network ---
+set.seed(123) # For a reproducible layout
+ggraph(network_graph_full_names, layout = 'fr') +
+  geom_edge_link(aes(width = n), alpha = 0.2, color = "grey") +
+  geom_node_point(aes(size = degree, color = as.factor(community))) +
+  geom_node_text(aes(label = name), repel = TRUE, size = 3.5, max.overlaps = 20) +
+  theme_graph(base_family = 'sans') +
+  theme(legend.position = "right") +
+  labs(
+    title = "Network Map of Individuals in the HNB Discourse",
+    subtitle = "Size indicates influence (degree), color indicates conversational cluster",
+    color = "Community ID",
+    size = "Connections (Degree)",
+    edge_width = "Co-mentions"
+  )
+```
+
+
+
+```{r, eval=FALSE}
+library(igraph)
+library(ggraph)
+library(dplyr) # Ensure dplyr is loaded for filtering and pipes
+
+# --- RE-CREATE NETWORK DATA (if not already in environment) ---
+# Assuming 'cleaned_full_name_occurrences' is available from previous steps.
+
+# 1. Map the Network of Connections (with slightly higher filter for initial cleaning)
+name_pairs_network <- cleaned_full_name_occurrences %>%
+  widyr::pairwise_count(item = full_name, feature = doc_id, sort = TRUE) %>%
+  # INCREASE THIS FILTER THRESHOLD: e.g., require at least 10 co-mentions
+  # This significantly reduces noise from weak, incidental connections.
+  filter(n >= 10) # Changed from 5 to 10 for a cleaner initial network
+
+# Create the initial igraph object
+network_graph_full_names_raw <- graph_from_data_frame(d = name_pairs_network, directed = FALSE)
+
+# Remove any nodes that became isolated after the increased filter (no connections left)
+network_graph_full_names <- delete_vertices(network_graph_full_names_raw, V(network_graph_full_names_raw)[degree(network_graph_full_names_raw) == 0])
+
+# --- 2. Recalculate Centrality and Communities for the CLEANER Graph ---
+V(network_graph_full_names)$degree <- degree(network_graph_full_names, mode = "all")
+V(network_graph_full_names)$betweenness <- betweenness(network_graph_full_names, directed = FALSE)
+communities <- cluster_louvain(network_graph_full_names)
+V(network_graph_full_names)$community <- communities$membership
+
+# --- 3. FILTER THE GRAPH FOR VISUALIZATION ---
+# This is a critical step for improving visibility.
+# We will only plot nodes that have a certain minimum degree (connections).
+# Adjust 'min_degree_to_plot' to control density. Start higher and reduce if needed.
+min_degree_to_plot <- 5 # Only plot nodes with at least 5 connections
+
+# Create a filtered graph for plotting
+# Keep only the nodes (and their connecting edges) that meet the degree threshold.
+# This ensures we focus on the more significant actors.
+graph_for_plotting <- subgraph.edges(
+  network_graph_full_names,
+  E(network_graph_full_names)[.from(V(network_graph_full_names)[degree >= min_degree_to_plot]) | .to(V(network_graph_full_names)[degree >= min_degree_to_plot])],
+  delete.vertices = TRUE
+)
+
+
+# Re-run community detection on the filtered graph, as communities might change
+# or some might disappear after filtering.
+V(graph_for_plotting)$degree <- degree(graph_for_plotting, mode = "all") # Re-calc degree
+communities_plotting <- cluster_louvain(graph_for_plotting)
+V(graph_for_plotting)$community <- communities_plotting$membership
+
+
+# --- 4. VISUALIZE THE IMPROVED NETWORK ---
+set.seed(123) # For a reproducible layout
+
+ggraph(graph_for_plotting, layout = 'fr') +
+  # Draw the connections (edges) with adjusted alpha and width
+  geom_edge_link(aes(width = n), alpha = 0.3, color = "grey") + # Make edges slightly more visible
+  
+  # Draw the people/entities (nodes) with adjusted size range
+  geom_node_point(aes(size = degree, color = as.factor(community)), alpha = 0.8) +
+  
+  # Add labels only to nodes that are sufficiently large/central
+  # This avoids cluttering with labels for minor nodes.
+  # Adjust 'label_threshold_degree' as needed.
+  geom_node_text(aes(label = name),
+                 repel = TRUE, # Prevents labels from overlapping
+                 size = 3.5,   # Adjust font size
+                 max.overlaps = 15, # Max number of labels that can overlap, adjust for density
+                 # Only label nodes above a certain degree
+                 data = . %>% filter(degree >= (quantile(degree, 0.75))) # Labels for top 25% by degree
+                 ) +
+  
+  # Adjust scales and theme
+  scale_edge_width(range = c(0.4, 3), name = "Co-mentions") + # Wider range for edges
+  scale_size_continuous(range = c(3, 18), name = "Connections (Degree)") + # Larger range for node sizes
+  scale_color_viridis_d(option = "cividis", name = "Community ID") + # Use a better color palette
+  theme_graph(base_family = 'sans',
+              plot_margin = margin(1, 1, 1, 1, "cm")) + # Add some margin
+  theme(legend.position = "right",
+        plot.title = element_text(size = 18, face = "bold"),
+        plot.subtitle = element_text(size = 12)) +
+  labs(
+    title = "Key Individuals in the HNB Discourse Network",
+    subtitle = paste0("Filtered for nodes with at least ", min_degree_to_plot, " connections (co-mentions >= 10)")
+  )
+```
+
+
+
+
+
+
+```{r}
+# library(widyr)
+# library(igraph)
+# library(ggraph)
+# library(ggplot2)
+
+# --- 1. Calculate Pairwise Correlations ---
+
+# To get meaningful correlations, it's best to first filter for individuals
+# who appear a sufficient number of times in the corpus.
+# Let's set a threshold, e.g., only include names mentioned at least 50 times.
+min_mentions_for_correlation <- 200
+
+names_for_correlation <- cleaned_full_name_occurrences %>%
+  add_count(full_name) %>%
+  filter(n >= min_mentions_for_correlation)
+
+# Now, calculate the pairwise correlation (phi coefficient) for these names
+name_correlations <- names_for_correlation %>%
+  pairwise_cor(item = full_name, feature = doc_id, sort = TRUE)
+
+# --- 2. Filter for Strong & Meaningful Connections ---
+
+# A correlation matrix can be very dense. We'll filter to keep only the
+# strongest positive correlations to make the graph readable.
+correlation_threshold <- 0.1 # Adjust this value (e.g., 0.05 to 0.2) to control density
+
+filtered_correlations <- name_correlations %>%
+  filter(correlation > correlation_threshold)
+
+# --- 3. Build and Visualize the Correlation Network ---
+
+# Create the graph object
+correlation_network <- graph_from_data_frame(filtered_correlations, directed = FALSE)
+
+# Remove any nodes that became isolated after filtering
+correlation_network <- delete_vertices(
+  correlation_network,
+  V(correlation_network)[degree(correlation_network) == 0]
+)
+
+# Visualize the network, mapping correlation to edge color and width
+set.seed(123) # for a reproducible layout
+
+ggraph(correlation_network, layout = 'fr') +
+  # Edges: color and width are both mapped to the 'correlation' value
+  geom_edge_link(aes(edge_width = correlation, edge_color = correlation), alpha = 0.8) +
+
+  # Nodes: dark, uniformly sized points as in your example
+  geom_node_point(color = "midnightblue", size = 5) +
+
+  # Node Labels
+  geom_node_text(aes(label = name), repel = TRUE, size = 4, color = "black") +
+
+  # Define the scales for edge aesthetics
+  scale_edge_width_continuous(range = c(0.5, 4), name = "Snaga veze (korelacija)") +
+  scale_edge_color_gradient(low = "lightblue", high = "darkblue", name = "Snaga veze (korelacija)") +
+
+  # Final theme and labels
+  theme_graph(base_family = 'sans') +
+  labs(
+    title = "Mreža povezanosti osoba",
+    subtitle = "Koje se osobe najčešće pojavljuju zajedno u istim člancima?"
+  )
+```
+
+
+```{r}
+# library(dplyr)
+# library(igraph)
+# library(ggraph)
+# library(ggplot2)
+
+# --- 1. Identify the Top 40 Most Mentioned Individuals ---
+total_mention_counts <- full_names_analytical_df %>%
+  count(full_name, sort = TRUE)
+
+top_40_names <- total_mention_counts %>%
+  slice_head(n = 30) %>%
+  pull(full_name)
+
+# --- 2. Calculate All Pairwise Metrics ---
+name_data_for_pairs <- full_names_analytical_df %>%
+  select(doc_id, full_name, sentiment_score, cli)
+
+pair_metrics <- name_data_for_pairs %>%
+  inner_join(name_data_for_pairs, by = "doc_id") %>%
+  filter(full_name.x < full_name.y) %>%
+  select(
+    name1 = full_name.x,
+    name2 = full_name.y,
+    sentiment_score = sentiment_score.x,
+    cli = cli.x
+  )
+
+name_pair_summary <- pair_metrics %>%
+  group_by(name1, name2) %>%
+  summarise(
+    n_comentions = n(),
+    avg_pair_sentiment = mean(sentiment_score, na.rm = TRUE),
+    avg_pair_cli = mean(cli, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(n_comentions >= 30)
+
+# --- 3. Filter for Connections *Between* the Top 40 Individuals ---
+top_40_network_data <- name_pair_summary %>%
+  filter(name1 %in% top_40_names & name2 %in% top_40_names)
+
+# --- 4. Build and Visualize the "Top 40" Network ---
+network_graph_top_40 <- graph_from_data_frame(d = top_40_network_data, directed = FALSE)
+network_graph_top_40 <- delete_vertices(
+  network_graph_top_40,
+  V(network_graph_top_40)[degree(network_graph_top_40) == 0]
+)
+
+set.seed(42)
+
+ggraph(network_graph_top_40, layout = 'fr') +
+  # Edges
+  geom_edge_link(aes(
+    color = avg_pair_sentiment,
+    width = avg_pair_cli,
+    alpha = n_comentions
+  ), show.legend = TRUE) +
+
+  # Nodes
+  geom_node_point(color = "black", size = 7) +
+
+  # Node Labels
+  geom_node_text(aes(label = name), repel = TRUE, size = 3.5, color = "black") +
+
+  # Scales for edges
+  scale_edge_color_gradient2(
+    low = "red", mid = "lightgrey", high = "darkgreen",
+    midpoint = 0, name = "Prosj. sentiment"
+  ) +
+  scale_edge_width_continuous(
+    range = c(0.5, 4), name = "Prosj. konflikt (CLI)"
+  ) +
+  scale_edge_alpha_continuous(
+    range = c(0.3, 0.9), name = "Broj članaka\n(Pouzdanost)"
+  ) +
+
+  # --- CORRECTED THEME SECTION ---
+  theme_graph(base_family = 'sans') + # Call theme_graph() without the extra argument
+  theme(
+    # The plot.background argument is correctly placed here:
+    plot.background = element_rect(fill = "white", colour = "white"),
+    
+    legend.position = "right",
+    plot.title = element_text(size = 18, face = "bold"),
+    plot.subtitle = element_text(size = 12)
+  ) +
+  labs(
+    title = "Mreža narativne atmosfere (Top 30 osoba)",
+    subtitle = "Boja veze = tonalitet | Debljina veze = konflikt | Prozirnost veze = pouzdanost"
+  )
+```
+
+
+
+
