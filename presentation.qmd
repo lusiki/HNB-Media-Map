@@ -10,8 +10,8 @@ format:
     footer: "Projektni prijedlog za HNB"
     slide-number: c/t
     css: pptstyle.css
-    self-contained: true # This is great for sharing
-    # chalkboard: true <-- REMOVED because it conflicts with self-contained
+    #self-contained: true # This is great for sharing
+    chalkboard: true # <-- REMOVED because it conflicts with self-contained
     title-slide-attributes:
       data-background-image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg"
       data-background-size: cover
