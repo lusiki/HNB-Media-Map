@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="presentation_files/libs/clipboard/clipboard.min.js"></script>
+<script src="presentation_files/libs/quarto-html/tabby.min.js"></script>
+<script src="presentation_files/libs/quarto-html/popper.min.js"></script>
+<script src="presentation_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="presentation_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="presentation_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="presentation_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.6.42">
+
+  <meta name="author" content="Luka Sikic, PhD">
+  <meta name="dcterms.date" content="2025-10-08">
+  <title>Relevantnost digitalnog medijskog prostora (podataka) za HNB</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="presentation_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="presentation_files/libs/revealjs/dist/reveal.css">
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="presentation_files/libs/revealjs/dist/theme/quarto-8f3eebe07241f08526c91a7e9cbef8fd.css">
+  <link rel="stylesheet" href="pptstyle.css">
+  <link href="presentation_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="presentation_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="presentation_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="presentation_files/libs/revealjs/plugin/reveal-chalkboard/font-awesome/css/all.css" rel="stylesheet">
+  <link href="presentation_files/libs/revealjs/plugin/reveal-chalkboard/style.css" rel="stylesheet">
+  <link href="presentation_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+  <script src="presentation_files/libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+
+  <script src="presentation_files/libs/plotly-binding-4.10.4/plotly.js"></script>
+
+  <script src="presentation_files/libs/typedarray-0.1/typedarray.min.js"></script>
+
+  <script src="presentation_files/libs/jquery-3.5.1/jquery.min.js"></script>
+
+  <link href="presentation_files/libs/crosstalk-1.2.1/css/crosstalk.min.css" rel="stylesheet">
+
+  <script src="presentation_files/libs/crosstalk-1.2.1/js/crosstalk.min.js"></script>
+
+  <link href="presentation_files/libs/plotly-htmlwidgets-css-2.11.1/plotly-htmlwidgets.css" rel="stylesheet">
+
+  <script src="presentation_files/libs/plotly-main-2.11.1/plotly-latest.min.js"></script>
+
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide" data-background-image="https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg" data-background-opacity="0.5" data-background-size="cover" class="quarto-title-block center">
+  <h1 class="title">Relevantnost digitalnog medijskog prostora (podataka) za HNB</h1>
+  <p class="subtitle">Prijedlog pilot projekta sustava za medijsko praćenje u realnom vremenu</p>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Luka Sikic, PhD 
+</div>
+</div>
+</div>
+
+  <p class="date">2025-10-08</p>
+</section>
+<section id="kontekst" class="slide level2">
+<h2>Kontekst</h2>
+<ul>
+<li><blockquote>
+<p><strong>Digitalni medijski prostor u RH:</strong> <a href="https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/01-kontekst.html">Definiraju ga</a> politička ekonomija digitalnog klika, prijeđeni put i algoritamska arhitektura javnog diskursa.</p>
+</blockquote></li>
+<li><blockquote>
+<p><strong>Komunikacija središnjih banaka:</strong> Značajna promjena od tajnovitosti do transparentnosti (1980e do 2000e), preko komunikacijske revolucije (1990e do ranih 2000ih), do aktivnog angažmana u medijskom prostoru.</p>
+</blockquote></li>
+<li><blockquote>
+<p><strong>Ekonomska literatura:</strong> Računalne društvene znanosti i korištenje velikih podataka su standardni u sve većem broju primjena u makroekonomiji i financijama.</p>
+</blockquote></li>
+</ul>
+</section>
+<section id="digitalni-medijski-podatci" class="slide level2">
+<h2>Digitalni medijski podatci</h2>
+<p>Alternativni podatci nisu zamjena nego nadopuna!</p>
+<div class="columns">
+<div class="column" style="width:50%;">
+<h4 id="strukturirani-ekonomski-podatci">Strukturirani ekonomski podatci</h4>
+<ul>
+<li>DZS ankete, FINA (GIF) izvještaji, GDP</li>
+<li><strong>Prednosti:</strong> Kvaliteta, struktura, pouzdanost</li>
+<li><strong>Nedostatci:</strong> Spori, skupi, niska frkvencija</li>
+</ul>
+</div><div class="column" style="width:50%;">
+<h4 id="digitalni-medijski-podatci-1">Digitalni medijski podatci ⚡️</h4>
+<ul>
+<li>Vijesti, društvene mreže, tražilice, senzori</li>
+<li><strong>Prednosti:</strong> U stvarnom vremenu, otkrivene preferencije, novi uvidi</li>
+<li><strong>Nedostatci:</strong> Bučni, nestrukturirani, pristrani</li>
+</ul>
+</div></div>
+</section>
+<section id="digitalni-medijski-prostor-rh" class="slide level2">
+<h2>Digitalni medijski prostor RH</h2>
+<div class="panel-tabset">
+<ul id="tabset-1" class="panel-tabset-tabby"><li><a data-tabby-default="" href="#tabset-1-1">Koncept</a></li><li><a href="#tabset-1-2">Objave</a></li><li><a href="#tabset-1-3">Interakcije</a></li><li><a href="#tabset-1-4">Efikasnost</a></li><li><a href="#tabset-1-5">Efikasnost 2</a></li><li><a href="#tabset-1-6">Dinamika</a></li></ul>
+<div class="tab-content">
+<div id="tabset-1-1">
+<p>Podatci uključuju: <br><br> - razdoblje 2021-06/2024-06 <br><br> - uključuju sve javne objave (N~21mil) u RH <br><br> - platforme: web, fb, ig, x, yt i reddit, forum, komentari</p>
+</div>
+<div id="tabset-1-2">
+<div class="cell">
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="presentation_files/figure-revealjs/plot1-1.png" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-3">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="presentation_files/figure-revealjs/unnamed-chunk-1-1.png" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-4">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="presentation_files/figure-revealjs/unnamed-chunk-2-1.png" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-5">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="presentation_files/figure-revealjs/unnamed-chunk-3-1.png" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-1-6">
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure>
+<p><img data-src="presentation_files/figure-revealjs/unnamed-chunk-4-1.png" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="mjerenje-ekonomskog-sentimenta" class="slide level2">
+<h2>Mjerenje ekonomskog sentimenta</h2>
+<p>Barometar za hrvatsko gospodarstvo u stvarnom vremenu, sličan poznatom indeksu Ekonomske neizvjesnosti (EPU).</p>
+<div class="panel-tabset">
+<ul id="tabset-2" class="panel-tabset-tabby"><li><a data-tabby-default="" href="#tabset-2-1">Koncept</a></li><li><a href="#tabset-2-2">Interaktivni demo</a></li></ul>
+<div class="tab-content">
+<div id="tabset-2-1">
+<p>Praćenjem učestalosti ključnih riječi vezanih za ekonomsko zdravlje (<code>gospodarstvo</code>, <code>recesija</code>, <code>nezaposlenost</code>) u glavnim hrvatskim medijima, možemo konstruirati robusni, visokofrekventni indeks ekonomskog sentimenta.</p>
+</div>
+<div id="tabset-2-2">
+<div class="cell">
+<div class="cell-output-display">
+<div class="plotly html-widget html-fill-item" id="htmlwidget-7c2a26eca46a20528b61" style="width:960px;height:480px;"></div>
+<script type="application/json" data-for="htmlwidget-7c2a26eca46a20528b61">{"x":{"data":[{"x":[18262,18269,18276,18283,18290,18297,18304,18311,18318,18325,18332,18339,18346,18353,18360,18367,18374,18381,18388,18395,18402,18409,18416,18423,18430,18437,18444,18451,18458,18465,18472,18479,18486,18493,18500,18507,18514,18521,18528,18535,18542,18549,18556,18563,18570,18577,18584,18591,18598,18605,18612,18619,18626,18633,18640,18647,18654,18661,18668,18675,18682,18689,18696,18703,18710,18717,18724,18731,18738,18745,18752,18759,18766,18773,18780,18787,18794,18801,18808,18815,18822,18829,18836,18843,18850,18857,18864,18871,18878,18885,18892,18899,18906,18913,18920,18927,18934,18941,18948,18955,18962,18969,18976,18983,18990,18997,19004,19011,19018,19025,19032,19039,19046,19053,19060,19067,19074,19081,19088,19095,19102,19109,19116,19123,19130,19137,19144,19151,19158,19165,19172,19179,19186,19193,19200,19207,19214,19221,19228,19235,19242,19249,19256,19263,19270,19277,19284,19291,19298,19305,19312,19319,19326,19333,19340,19347,19354,19361,19368,19375,19382,19389,19396,19403,19410,19417,19424,19431,19438,19445,19452,19459,19466,19473,19480,19487,19494,19501,19508,19515,19522,19529,19536,19543,19550,19557,19564,19571,19578,19585,19592,19599,19606,19613,19620,19627,19634,19641,19648,19655,19662,19669,19676,19683,19690,19697,19704,19711,19718],"y":[99.658453613405825,99.80736694992207,102.62968380047714,103.20493706585056,103.84890465006976,106.84758680434882,107.93683718254591,106.40493734894527,105.70451216474478,105.32673958549691,107.4115441579238,108.1554235280388,108.91417620117971,109.18965799795373,108.41612257890058,111.10688536629246,111.81411712069114,108.77510548787531,109.68940162426692,108.79520120836636,106.96302534850206,106.3624981623682,104.50953553169299,103.06498852962844,101.74247444561858,98.797580618092482,99.613653726896104,99.381754753261262,97.195855243033719,98.585931018868038,98.727930622950367,97.785549369157621,98.631380107146811,99.459603299028458,100.21576429317074,100.79003859629471,101.18433658853289,100.68136027249669,99.842874935680541,98.926986753542181,97.577553206379008,96.999183982603725,94.878138633571993,97.954391895879454,99.636694674459036,97.871227369812175,97.235738847210385,96.554549060416846,97.793056718978875,97.785644809077098,98.33117054174626,98.500150541761101,98.691780923305387,101.04219912266664,101.03966345410572,103.68573779924039,101.76551406926848,103.07285150964198,103.71226044832649,104.508478634599,105.56420282837298,105.30608315598204,105.30578859698713,104.27660204415722,103.16176912063045,104.09916895986466,105.2380264133249,105.7638499060307,107.56888317409826,111.03674437419193,110.66010983214255,107.51985063729774,109.31230220788817,108.4898584399299,107.65430492004441,109.3422604508732,109.01634374952425,107.23714273863048,107.51108794058004,107.25483542083953,107.16613952079787,107.5982638516608,106.84948018935479,107.57818038379297,106.9668915637409,107.14411443586756,108.43223361663193,108.69474566693053,107.7863666064643,109.06506617806031,110.09022134754146,110.43177454555804,110.29769469525927,108.8574405909317,110.39878653415087,109.00251884962434,111.79634911320937,113.62167253828224,112.81283817701456,110.84078074098414,109.36992320541763,109.38122857564913,108.67213514710537,107.8501179513984,106.1633436460708,105.88040375065174,104.53374907317922,101.9103300993155,101.26749020268441,102.62321535005394,101.78738299787491,102.77620377647584,100.47517211028823,100.56528278318848,101.56377534398491,102.27862328583358,102.74136263230538,102.12259611555687,101.22497945920693,100.09660724448257,100.70770440746192,99.743583397673575,99.482734686477713,99.586734477767806,102.84893887610166,102.37073874642014,103.22186357584147,103.83019376859502,102.8672318875806,103.22373274683993,105.83303117220363,106.92734750349669,107.37667812393299,107.0969635142028,104.33413536488789,106.30802812653351,104.35103265740611,105.64965855940034,108.65487307298091,106.58203260302268,107.67821927134999,107.27850935708851,104.86401967616153,102.48644725686223,99.93032939137737,98.933450191201018,96.495595108719314,97.239996449344972,100.06330627081678,97.769793009989712,98.555946428716837,99.285518886187248,99.335532175996491,97.35485618165643,96.692422897670909,95.778260746723788,96.123792703986979,95.065784399763132,96.036485824059028,94.989390860954117,96.097617556728409,94.072099200657007,91.753714909078283,96.215002756186053,95.221323073839528,95.335830780324727,95.996736793948244,95.018939577576347,95.586447748282438,95.978527143634125,95.54211881616115,95.575883061649364,95.510410355884602,98.738663457420756,97.711826188023892,96.201739325162052,96.439732164553376,97.132354640246092,98.057365197731841,97.68066652311424,96.434044728238334,98.711227208118657,98.599372790086079,97.739818333880194,97.845823998479972,98.027594940622095,100.18234855480466,100.80677141777963,102.4376437389823,102.18597832250461,102.99743127847705,102.98780601542548,103.58993346545083,102.68539045240853,101.13155867522609,104.50949750409072,105.75860971601941,104.19220428435678,103.54530722500895,101.99359284854279,105.4727048864697,107.57480417171539,107.2618160270155,108.11173958739744,107.4754141361998,106.69642829597552,105.39975418861766,104.34604083530401,106.6142135093846],"text":["date: 2020-01-01<br />sentiment_index:  99.65845","date: 2020-01-08<br />sentiment_index:  99.80737","date: 2020-01-15<br />sentiment_index: 102.62968","date: 2020-01-22<br />sentiment_index: 103.20494","date: 2020-01-29<br />sentiment_index: 103.84890","date: 2020-02-05<br />sentiment_index: 106.84759","date: 2020-02-12<br />sentiment_index: 107.93684","date: 2020-02-19<br />sentiment_index: 106.40494","date: 2020-02-26<br />sentiment_index: 105.70451","date: 2020-03-04<br />sentiment_index: 105.32674","date: 2020-03-11<br />sentiment_index: 107.41154","date: 2020-03-18<br />sentiment_index: 108.15542","date: 2020-03-25<br />sentiment_index: 108.91418","date: 2020-04-01<br />sentiment_index: 109.18966","date: 2020-04-08<br />sentiment_index: 108.41612","date: 2020-04-15<br />sentiment_index: 111.10689","date: 2020-04-22<br />sentiment_index: 111.81412","date: 2020-04-29<br />sentiment_index: 108.77511","date: 2020-05-06<br />sentiment_index: 109.68940","date: 2020-05-13<br />sentiment_index: 108.79520","date: 2020-05-20<br />sentiment_index: 106.96303","date: 2020-05-27<br />sentiment_index: 106.36250","date: 2020-06-03<br />sentiment_index: 104.50954","date: 2020-06-10<br />sentiment_index: 103.06499","date: 2020-06-17<br />sentiment_index: 101.74247","date: 2020-06-24<br />sentiment_index:  98.79758","date: 2020-07-01<br />sentiment_index:  99.61365","date: 2020-07-08<br />sentiment_index:  99.38175","date: 2020-07-15<br />sentiment_index:  97.19586","date: 2020-07-22<br />sentiment_index:  98.58593","date: 2020-07-29<br />sentiment_index:  98.72793","date: 2020-08-05<br />sentiment_index:  97.78555","date: 2020-08-12<br />sentiment_index:  98.63138","date: 2020-08-19<br />sentiment_index:  99.45960","date: 2020-08-26<br />sentiment_index: 100.21576","date: 2020-09-02<br />sentiment_index: 100.79004","date: 2020-09-09<br />sentiment_index: 101.18434","date: 2020-09-16<br />sentiment_index: 100.68136","date: 2020-09-23<br />sentiment_index:  99.84287","date: 2020-09-30<br />sentiment_index:  98.92699","date: 2020-10-07<br />sentiment_index:  97.57755","date: 2020-10-14<br />sentiment_index:  96.99918","date: 2020-10-21<br />sentiment_index:  94.87814","date: 2020-10-28<br />sentiment_index:  97.95439","date: 2020-11-04<br />sentiment_index:  99.63669","date: 2020-11-11<br />sentiment_index:  97.87123","date: 2020-11-18<br />sentiment_index:  97.23574","date: 2020-11-25<br />sentiment_index:  96.55455","date: 2020-12-02<br />sentiment_index:  97.79306","date: 2020-12-09<br />sentiment_index:  97.78564","date: 2020-12-16<br />sentiment_index:  98.33117","date: 2020-12-23<br />sentiment_index:  98.50015","date: 2020-12-30<br />sentiment_index:  98.69178","date: 2021-01-06<br />sentiment_index: 101.04220","date: 2021-01-13<br />sentiment_index: 101.03966","date: 2021-01-20<br />sentiment_index: 103.68574","date: 2021-01-27<br />sentiment_index: 101.76551","date: 2021-02-03<br />sentiment_index: 103.07285","date: 2021-02-10<br />sentiment_index: 103.71226","date: 2021-02-17<br />sentiment_index: 104.50848","date: 2021-02-24<br />sentiment_index: 105.56420","date: 2021-03-03<br />sentiment_index: 105.30608","date: 2021-03-10<br />sentiment_index: 105.30579","date: 2021-03-17<br />sentiment_index: 104.27660","date: 2021-03-24<br />sentiment_index: 103.16177","date: 2021-03-31<br />sentiment_index: 104.09917","date: 2021-04-07<br />sentiment_index: 105.23803","date: 2021-04-14<br />sentiment_index: 105.76385","date: 2021-04-21<br />sentiment_index: 107.56888","date: 2021-04-28<br />sentiment_index: 111.03674","date: 2021-05-05<br />sentiment_index: 110.66011","date: 2021-05-12<br />sentiment_index: 107.51985","date: 2021-05-19<br />sentiment_index: 109.31230","date: 2021-05-26<br />sentiment_index: 108.48986","date: 2021-06-02<br />sentiment_index: 107.65430","date: 2021-06-09<br />sentiment_index: 109.34226","date: 2021-06-16<br />sentiment_index: 109.01634","date: 2021-06-23<br />sentiment_index: 107.23714","date: 2021-06-30<br />sentiment_index: 107.51109","date: 2021-07-07<br />sentiment_index: 107.25484","date: 2021-07-14<br />sentiment_index: 107.16614","date: 2021-07-21<br />sentiment_index: 107.59826","date: 2021-07-28<br />sentiment_index: 106.84948","date: 2021-08-04<br />sentiment_index: 107.57818","date: 2021-08-11<br />sentiment_index: 106.96689","date: 2021-08-18<br />sentiment_index: 107.14411","date: 2021-08-25<br />sentiment_index: 108.43223","date: 2021-09-01<br />sentiment_index: 108.69475","date: 2021-09-08<br />sentiment_index: 107.78637","date: 2021-09-15<br />sentiment_index: 109.06507","date: 2021-09-22<br />sentiment_index: 110.09022","date: 2021-09-29<br />sentiment_index: 110.43177","date: 2021-10-06<br />sentiment_index: 110.29769","date: 2021-10-13<br />sentiment_index: 108.85744","date: 2021-10-20<br />sentiment_index: 110.39879","date: 2021-10-27<br />sentiment_index: 109.00252","date: 2021-11-03<br />sentiment_index: 111.79635","date: 2021-11-10<br />sentiment_index: 113.62167","date: 2021-11-17<br />sentiment_index: 112.81284","date: 2021-11-24<br />sentiment_index: 110.84078","date: 2021-12-01<br />sentiment_index: 109.36992","date: 2021-12-08<br />sentiment_index: 109.38123","date: 2021-12-15<br />sentiment_index: 108.67214","date: 2021-12-22<br />sentiment_index: 107.85012","date: 2021-12-29<br />sentiment_index: 106.16334","date: 2022-01-05<br />sentiment_index: 105.88040","date: 2022-01-12<br />sentiment_index: 104.53375","date: 2022-01-19<br />sentiment_index: 101.91033","date: 2022-01-26<br />sentiment_index: 101.26749","date: 2022-02-02<br />sentiment_index: 102.62322","date: 2022-02-09<br />sentiment_index: 101.78738","date: 2022-02-16<br />sentiment_index: 102.77620","date: 2022-02-23<br />sentiment_index: 100.47517","date: 2022-03-02<br />sentiment_index: 100.56528","date: 2022-03-09<br />sentiment_index: 101.56378","date: 2022-03-16<br />sentiment_index: 102.27862","date: 2022-03-23<br />sentiment_index: 102.74136","date: 2022-03-30<br />sentiment_index: 102.12260","date: 2022-04-06<br />sentiment_index: 101.22498","date: 2022-04-13<br />sentiment_index: 100.09661","date: 2022-04-20<br />sentiment_index: 100.70770","date: 2022-04-27<br />sentiment_index:  99.74358","date: 2022-05-04<br />sentiment_index:  99.48273","date: 2022-05-11<br />sentiment_index:  99.58673","date: 2022-05-18<br />sentiment_index: 102.84894","date: 2022-05-25<br />sentiment_index: 102.37074","date: 2022-06-01<br />sentiment_index: 103.22186","date: 2022-06-08<br />sentiment_index: 103.83019","date: 2022-06-15<br />sentiment_index: 102.86723","date: 2022-06-22<br />sentiment_index: 103.22373","date: 2022-06-29<br />sentiment_index: 105.83303","date: 2022-07-06<br />sentiment_index: 106.92735","date: 2022-07-13<br />sentiment_index: 107.37668","date: 2022-07-20<br />sentiment_index: 107.09696","date: 2022-07-27<br />sentiment_index: 104.33414","date: 2022-08-03<br />sentiment_index: 106.30803","date: 2022-08-10<br />sentiment_index: 104.35103","date: 2022-08-17<br />sentiment_index: 105.64966","date: 2022-08-24<br />sentiment_index: 108.65487","date: 2022-08-31<br />sentiment_index: 106.58203","date: 2022-09-07<br />sentiment_index: 107.67822","date: 2022-09-14<br />sentiment_index: 107.27851","date: 2022-09-21<br />sentiment_index: 104.86402","date: 2022-09-28<br />sentiment_index: 102.48645","date: 2022-10-05<br />sentiment_index:  99.93033","date: 2022-10-12<br />sentiment_index:  98.93345","date: 2022-10-19<br />sentiment_index:  96.49560","date: 2022-10-26<br />sentiment_index:  97.24000","date: 2022-11-02<br />sentiment_index: 100.06331","date: 2022-11-09<br />sentiment_index:  97.76979","date: 2022-11-16<br />sentiment_index:  98.55595","date: 2022-11-23<br />sentiment_index:  99.28552","date: 2022-11-30<br />sentiment_index:  99.33553","date: 2022-12-07<br />sentiment_index:  97.35486","date: 2022-12-14<br />sentiment_index:  96.69242","date: 2022-12-21<br />sentiment_index:  95.77826","date: 2022-12-28<br />sentiment_index:  96.12379","date: 2023-01-04<br />sentiment_index:  95.06578","date: 2023-01-11<br />sentiment_index:  96.03649","date: 2023-01-18<br />sentiment_index:  94.98939","date: 2023-01-25<br />sentiment_index:  96.09762","date: 2023-02-01<br />sentiment_index:  94.07210","date: 2023-02-08<br />sentiment_index:  91.75371","date: 2023-02-15<br />sentiment_index:  96.21500","date: 2023-02-22<br />sentiment_index:  95.22132","date: 2023-03-01<br />sentiment_index:  95.33583","date: 2023-03-08<br />sentiment_index:  95.99674","date: 2023-03-15<br />sentiment_index:  95.01894","date: 2023-03-22<br />sentiment_index:  95.58645","date: 2023-03-29<br />sentiment_index:  95.97853","date: 2023-04-05<br />sentiment_index:  95.54212","date: 2023-04-12<br />sentiment_index:  95.57588","date: 2023-04-19<br />sentiment_index:  95.51041","date: 2023-04-26<br />sentiment_index:  98.73866","date: 2023-05-03<br />sentiment_index:  97.71183","date: 2023-05-10<br />sentiment_index:  96.20174","date: 2023-05-17<br />sentiment_index:  96.43973","date: 2023-05-24<br />sentiment_index:  97.13235","date: 2023-05-31<br />sentiment_index:  98.05737","date: 2023-06-07<br />sentiment_index:  97.68067","date: 2023-06-14<br />sentiment_index:  96.43404","date: 2023-06-21<br />sentiment_index:  98.71123","date: 2023-06-28<br />sentiment_index:  98.59937","date: 2023-07-05<br />sentiment_index:  97.73982","date: 2023-07-12<br />sentiment_index:  97.84582","date: 2023-07-19<br />sentiment_index:  98.02759","date: 2023-07-26<br />sentiment_index: 100.18235","date: 2023-08-02<br />sentiment_index: 100.80677","date: 2023-08-09<br />sentiment_index: 102.43764","date: 2023-08-16<br />sentiment_index: 102.18598","date: 2023-08-23<br />sentiment_index: 102.99743","date: 2023-08-30<br />sentiment_index: 102.98781","date: 2023-09-06<br />sentiment_index: 103.58993","date: 2023-09-13<br />sentiment_index: 102.68539","date: 2023-09-20<br />sentiment_index: 101.13156","date: 2023-09-27<br />sentiment_index: 104.50950","date: 2023-10-04<br />sentiment_index: 105.75861","date: 2023-10-11<br />sentiment_index: 104.19220","date: 2023-10-18<br />sentiment_index: 103.54531","date: 2023-10-25<br />sentiment_index: 101.99359","date: 2023-11-01<br />sentiment_index: 105.47270","date: 2023-11-08<br />sentiment_index: 107.57480","date: 2023-11-15<br />sentiment_index: 107.26182","date: 2023-11-22<br />sentiment_index: 108.11174","date: 2023-11-29<br />sentiment_index: 107.47541","date: 2023-12-06<br />sentiment_index: 106.69643","date: 2023-12-13<br />sentiment_index: 105.39975","date: 2023-12-20<br />sentiment_index: 104.34604","date: 2023-12-27<br />sentiment_index: 106.61421"],"type":"scatter","mode":"lines","line":{"width":3.0236220472440949,"color":"rgba(0,83,156,1)","dash":"solid"},"hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":55.8505603985056,"r":9.2984640929846396,"b":38.123702781237029,"l":54.860938148609378},"font":{"color":"rgba(0,0,0,1)","family":"Roboto Mono","size":18.596928185969279},"title":{"text":"<b> Indeks ekonomskog sentimenta (Prototip) <\/b>","font":{"color":"rgba(13,44,84,1)","family":"Roboto Mono","size":21.253632212536321},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[18189.200000000001,19790.799999999999],"tickmode":"array","ticktext":["2020","2021","2022","2023","2024"],"tickvals":[18262,18628,18993,19358,19723],"categoryorder":"array","categoryarray":["2020","2021","2022","2023","2024"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":4.6492320464923198,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"Roboto Mono","size":14.877542548775427},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.8453149175440583,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"Roboto Mono","size":18.596928185969279}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[90.660317027618092,114.71507041974243],"tickmode":"array","ticktext":["95","100","105","110"],"tickvals":[95,100,105,110],"categoryorder":"array","categoryarray":["95","100","105","110"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":4.6492320464923198,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"Roboto Mono","size":14.877542548775427},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.8453149175440583,"zeroline":false,"anchor":"x","title":{"text":"Indeks","font":{"color":"rgba(0,0,0,1)","family":"Roboto Mono","size":18.596928185969279}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"Roboto Mono","size":14.877542548775427}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"26809ec1c2a":{"x":{},"y":{},"type":"scatter"}},"cur_data":"26809ec1c2a","visdat":{"26809ec1c2a":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="ostale-potencijalne-primjene" class="slide level2">
+<h2>Ostale potencijalne primjene</h2>
+<p>Metodologija je fleksibilna i može se proširiti na praćenje različitih sektora:</p>
+<ul>
+<li><blockquote>
+<p><strong>Financijska stabilnost:</strong> Praćenje sentimenta prema bankarskom sektoru ili tržištu nekretnina (<code>banke</code>, <code>kredit</code>, <code>nekretnine</code>).</p>
+</blockquote></li>
+<li><blockquote>
+<p><strong>Tržište rada:</strong> Praćenje rasprava o traženju posla, otkazima i pritiscima na plaće.</p>
+</blockquote></li>
+<li><blockquote>
+<p><strong>Regionalna analiza:</strong> Korištenje geolokacijskih podataka za uvid u regionalne ekonomske nejednakosti.</p>
+</blockquote></li>
+</ul>
+</section>
+<section id="prijedlog-projekta" class="slide level2">
+<h2>Prijedlog projekta</h2>
+<h3 id="pilot-hnb-digitalni-ekonomski-puls">Pilot: “HNB Digitalni ekonomski puls”</h3>
+<p>Naš prijedlog je fokusiran, 6-mjesečni pilot za dokazivanje vrijednosti ovog pristupa.</p>
+<ul>
+<li><p><strong>Cilj:</strong> Razviti i testirati prototip indeksa sentimenta inflacije u stvarnom vremenu za Hrvatsku.</p></li>
+<li><p><strong>Opseg:</strong></p>
+<ul>
+<li><em>Izvori podataka:</em> 2-3 glavna hrvatska news portala i Google Trends.</li>
+<li><em>Vremenski okvir:</em> Povijesna analiza (zadnjih 5 godina) i praćenje uživo.</li>
+<li><em>Validacija:</em> Usporedba indeksa s HNB-ovim anketama potrošača i službenim HICP podacima.</li>
+</ul></li>
+<li><p><strong>Vremenski plan:</strong></p>
+<ul>
+<li><strong>Faza 1 (Mjesec 1-2):</strong> Infrastruktura i prikupljanje podataka</li>
+<li><strong>Faza 2 (Mjesec 3-4):</strong> Razvoj NLP modela i konstrukcija indeksa</li>
+<li><strong>Faza 3 (Mjesec 5-6):</strong> Validacija, prototip nadzorne ploče i završni izvještaj</li>
+</ul></li>
+</ul>
+</section>
+<section id="isporuke-i-ishodi" class="slide level2">
+<h2>Isporuke i Ishodi</h2>
+<p>Po završetku pilota, HNB će dobiti:</p>
+<ul>
+<li><strong>Potpuno dokumentiranu i ponovljivu R kodnu bazu.</strong></li>
+<li><strong>Validacijski izvještaj</strong> koji detaljno opisuje statistička svojstva indeksa.</li>
+<li><strong>Interaktivni prototip Quarto nadzorne ploče</strong> za internu upotrebu.</li>
+<li><strong>Završnu prezentaciju</strong> nalaza i preporuka za daljnji razvoj.</li>
+</ul>
+</section>
+<section id="potrebni-resursi" class="slide level2">
+<h2>Potrebni resursi</h2>
+<p>Ovaj projekt je dizajniran da bude agilan i visoko kolaborativan.</p>
+<h4 id="tim">Tim</h4>
+<ul>
+<li>1-2 podatkovna znanstvenika / ekonomista.</li>
+<li>Kontakt točka iz odjela za istraživanje HNB-a.</li>
+</ul>
+<h4 id="tehnologija">Tehnologija</h4>
+<ul>
+<li>Standardni računalni resursi.</li>
+<li>Nije potreban specijalizirani hardver za pilot fazu.</li>
+</ul>
+<h4 id="podatci">Podatci</h4>
+<ul>
+<li>Koriste se isključivo javno dostupni podatci.</li>
+<li>Nema potrebe za osjetljivim internim podacima HNB-a.</li>
+</ul>
+</section>
+<section id="zaključak" class="slide level2">
+<h2>Zaključak</h2>
+<h3 id="vizija-budućnosti-i-idući-koraci">Vizija budućnosti i idući koraci</h3>
+<ul>
+<li><blockquote>
+<p>Ovaj pilot projekt je <strong>niskorizičan prvi korak visokog utjecaja</strong> za integraciju podataka u stvarnom vremenu u analitički set alata HNB-a.</p>
+</blockquote></li>
+<li><blockquote>
+<p><strong>Dugoročna vizija:</strong> Ovo je temelj za sveobuhvatan “nowcasting” sustav, koji poboljšava sposobnost HNB-a da prati gospodarstvo i učinkovito komunicira.</p>
+</blockquote></li>
+<li><blockquote>
+<p><strong>Poziv na akciju:</strong></p>
+</blockquote>
+<ol type="1">
+<li>Osigurati odobrenje za 6-mjesečni pilot projekt.</li>
+<li>Zakazati tehnički sastanak s relevantnim odjelima HNB-a.</li>
+<li>Krenimo graditi budućnost ekonomskog praćenja za Hrvatsku.</li>
+</ol></li>
+</ul>
+</section>
+<section id="hvala-pitanja" class="slide level2">
+<h2>Hvala! / Pitanja?</h2>
+<p><strong>Kontakt:</strong></p>
+<ul>
+<li><a href="https://www.unicath.hr/odjeli-i-fakultet/nastavnici/luka-sikic">Luka Šikić</a></li>
+<li>luka.sikic@unicath.hr</li>
+<li><a href="https://www.linkedin.com/in/luka-sikic-662ba869/">linkedin</a></li>
+</ul>
+
+</section>
+    </div>
+  <div class="quarto-auto-generated-content" style="display: none;">
+<p><img src="photo.png" class="slide-logo"></p>
+<div class="footer footer-default">
+<p>Projektni prijedlog za HNB</p>
+</div>
+</div></div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="presentation_files/libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="presentation_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="presentation_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="presentation_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="presentation_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="presentation_files/libs/revealjs/plugin/reveal-chalkboard/plugin.js"></script>
+  <script src="presentation_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="presentation_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="presentation_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="presentation_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="presentation_files/libs/revealjs/plugin/math/math.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': true,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease",
+'autoAnimateDuration': 1,
+'autoAnimateUnmatched': true,
+'jumpToSlide': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleChalkboard(event)\"><kbd>b</kbd> Toggle Chalkboard</a></li>\n<li class=\"slide-tool-item\" data-item=\"6\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleNotesCanvas(event)\"><kbd>c</kbd> Toggle Notes Canvas</a></li>\n<li class=\"slide-tool-item\" data-item=\"7\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.downloadDrawings(event)\"><kbd>d</kbd> Download Drawings</a></li>\n<li class=\"slide-tool-item\" data-item=\"8\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true},
+'chalkboard': {"buttons":true},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: false,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'none',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1050,
+
+        height: 700,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 0.1,
+
+        math: {
+          mathjax: 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/MathJax.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, RevealChalkboard, QuartoSupport,
+
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    
+
+    <script>
+
+      // htmlwidgets need to know to resize themselves when slides are shown/hidden.
+
+      // Fire the "slideenter" event (handled by htmlwidgets.js) when the current
+
+      // slide changes (different for each slide format).
+
+      (function () {
+
+        // dispatch for htmlwidgets
+
+        function fireSlideEnter() {
+
+          const event = window.document.createEvent("Event");
+
+          event.initEvent("slideenter", true, true);
+
+          window.document.dispatchEvent(event);
+
+        }
+
+    
+
+        function fireSlideChanged(previousSlide, currentSlide) {
+
+          fireSlideEnter();
+
+    
+
+          // dispatch for shiny
+
+          if (window.jQuery) {
+
+            if (previousSlide) {
+
+              window.jQuery(previousSlide).trigger("hidden");
+
+            }
+
+            if (currentSlide) {
+
+              window.jQuery(currentSlide).trigger("shown");
+
+            }
+
+          }
+
+        }
+
+    
+
+        // hookup for slidy
+
+        if (window.w3c_slidy) {
+
+          window.w3c_slidy.add_observer(function (slide_num) {
+
+            // slide_num starts at position 1
+
+            fireSlideChanged(null, w3c_slidy.slides[slide_num - 1]);
+
+          });
+
+        }
+
+    
+
+      })();
+
+    </script>
+
+    
+
+    <script id="quarto-html-after-body" type="application/javascript">
+    window.document.addEventListener("DOMContentLoaded", function (event) {
+      const toggleBodyColorMode = (bsSheetEl) => {
+        const mode = bsSheetEl.getAttribute("data-mode");
+        const bodyEl = window.document.querySelector("body");
+        if (mode === "dark") {
+          bodyEl.classList.add("quarto-dark");
+          bodyEl.classList.remove("quarto-light");
+        } else {
+          bodyEl.classList.add("quarto-light");
+          bodyEl.classList.remove("quarto-dark");
+        }
+      }
+      const toggleBodyColorPrimary = () => {
+        const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+        if (bsSheetEl) {
+          toggleBodyColorMode(bsSheetEl);
+        }
+      }
+      toggleBodyColorPrimary();  
+      const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+      tabsets.forEach(function(tabset) {
+        const tabby = new Tabby('#' + tabset.id);
+      });
+      const isCodeAnnotation = (el) => {
+        for (const clz of el.classList) {
+          if (clz.startsWith('code-annotation-')) {                     
+            return true;
+          }
+        }
+        return false;
+      }
+      const onCopySuccess = function(e) {
+        // button target
+        const button = e.trigger;
+        // don't keep focus
+        button.blur();
+        // flash "checked"
+        button.classList.add('code-copy-button-checked');
+        var currentTitle = button.getAttribute("title");
+        button.setAttribute("title", "Copied!");
+        let tooltip;
+        if (window.bootstrap) {
+          button.setAttribute("data-bs-toggle", "tooltip");
+          button.setAttribute("data-bs-placement", "left");
+          button.setAttribute("data-bs-title", "Copied!");
+          tooltip = new bootstrap.Tooltip(button, 
+            { trigger: "manual", 
+              customClass: "code-copy-button-tooltip",
+              offset: [0, -8]});
+          tooltip.show();    
+        }
+        setTimeout(function() {
+          if (tooltip) {
+            tooltip.hide();
+            button.removeAttribute("data-bs-title");
+            button.removeAttribute("data-bs-toggle");
+            button.removeAttribute("data-bs-placement");
+          }
+          button.setAttribute("title", currentTitle);
+          button.classList.remove('code-copy-button-checked');
+        }, 1000);
+        // clear code selection
+        e.clearSelection();
+      }
+      const getTextToCopy = function(trigger) {
+          const codeEl = trigger.previousElementSibling.cloneNode(true);
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+      }
+      const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+        text: getTextToCopy
+      });
+      clipboard.on('success', onCopySuccess);
+      if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+        const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+          text: getTextToCopy,
+          container: window.document.getElementById('quarto-embedded-source-code-modal')
+        });
+        clipboardModal.on('success', onCopySuccess);
+      }
+        var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+        var mailtoRegex = new RegExp(/^mailto:/);
+          var filterRegex = new RegExp('/' + window.location.host + '/');
+        var isInternal = (href) => {
+            return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+        }
+        // Inspect non-navigation links and adorn them if external
+     	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+        for (var i=0; i<links.length; i++) {
+          const link = links[i];
+          if (!isInternal(link.href)) {
+            // undo the damage that might have been done by quarto-nav.js in the case of
+            // links that we want to consider external
+            if (link.dataset.originalHref !== undefined) {
+              link.href = link.dataset.originalHref;
+            }
+          }
+        }
+      function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+        const config = {
+          allowHTML: true,
+          maxWidth: 500,
+          delay: 100,
+          arrow: false,
+          appendTo: function(el) {
+              return el.closest('section.slide') || el.parentElement;
+          },
+          interactive: true,
+          interactiveBorder: 10,
+          theme: 'light-border',
+          placement: 'bottom-start',
+        };
+        if (contentFn) {
+          config.content = contentFn;
+        }
+        if (onTriggerFn) {
+          config.onTrigger = onTriggerFn;
+        }
+        if (onUntriggerFn) {
+          config.onUntrigger = onUntriggerFn;
+        }
+          config['offset'] = [0,0];
+          config['maxWidth'] = 700;
+        window.tippy(el, config); 
+      }
+      const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+      for (var i=0; i<noterefs.length; i++) {
+        const ref = noterefs[i];
+        tippyHover(ref, function() {
+          // use id or data attribute instead here
+          let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+          try { href = new URL(href).hash; } catch {}
+          const id = href.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note) {
+            return note.innerHTML;
+          } else {
+            return "";
+          }
+        });
+      }
+      const findCites = (el) => {
+        const parentEl = el.parentElement;
+        if (parentEl) {
+          const cites = parentEl.dataset.cites;
+          if (cites) {
+            return {
+              el,
+              cites: cites.split(' ')
+            };
+          } else {
+            return findCites(el.parentElement)
+          }
+        } else {
+          return undefined;
+        }
+      };
+      var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+      for (var i=0; i<bibliorefs.length; i++) {
+        const ref = bibliorefs[i];
+        const citeInfo = findCites(ref);
+        if (citeInfo) {
+          tippyHover(citeInfo.el, function() {
+            var popup = window.document.createElement('div');
+            citeInfo.cites.forEach(function(cite) {
+              var citeDiv = window.document.createElement('div');
+              citeDiv.classList.add('hanging-indent');
+              citeDiv.classList.add('csl-entry');
+              var biblioDiv = window.document.getElementById('ref-' + cite);
+              if (biblioDiv) {
+                citeDiv.innerHTML = biblioDiv.innerHTML;
+              }
+              popup.appendChild(citeDiv);
+            });
+            return popup.innerHTML;
+          });
+        }
+      }
+    });
+    </script>
+    
+
+</body></html>

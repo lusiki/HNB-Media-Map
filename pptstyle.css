@@ -1,0 +1,24 @@
+/* Import the Roboto Mono font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+/* Apply the font to the entire presentation body */
+.reveal .slides {
+  font-family: 'Roboto Mono', monospace;
+}
+
+/* Apply the font to all headers and make them bolder */
+.reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+  font-family: 'Roboto Mono', monospace;
+  font-weight: 700; /* Bolder weight */
+
+  /* Optional: Add a slight letter spacing for a more technical feel */
+  letter-spacing: 0.02em;
+}
+
+/* Optional: Make code blocks stand out less, as everything is now monospace */
+.reveal code {
+  font-family: 'Roboto Mono', monospace;
+  background-color: #f3f3f3; /* A slightly different background */
+  padding: 2px 4px;
+  border-radius: 4px;
+}

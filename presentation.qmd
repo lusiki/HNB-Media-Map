@@ -1,0 +1,593 @@
+---
+title: "Relevantnost digitalnog medijskog prostora (podataka) za HNB"
+subtitle: "Prijedlog pilot projekta sustava za medijsko praćenje u realnom vremenu"
+author: "Luka Sikic, PhD"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+format: 
+  revealjs:
+    theme: simple
+    logo: photo.png
+    footer: "Projektni prijedlog za HNB"
+    slide-number: c/t
+    chalkboard: true
+    css: pptstyle.css
+    title-slide-attributes:
+      data-background-image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg"
+      data-background-size: cover
+      data-background-opacity: "0.5"
+---
+
+```{r setup, include=FALSE}
+# Load necessary packages for the presentation
+library(tidyverse)
+library(lubridate)
+library(plotly)
+
+# --- 0. SETUP (This should already be in your setup chunk) ---
+hnb_colors <- c(
+  dark_blue   = "#0D2C54",
+  medium_blue = "#2E5A8C",
+  accent_red  = "#C41E3A",
+  light_grey  = "#A9A9A9",
+  medium_grey = "#696969"
+)
+
+theme_hnb <- theme_minimal(base_size = 14, base_family = "Roboto Mono") +
+  theme(
+    plot.title = element_text(face = "bold", size = 16, color = hnb_colors["dark_blue"]),
+    plot.subtitle = element_text(size = 12, color = hnb_colors["medium_grey"]),
+    legend.position = "top"
+  )
+theme_set(theme_hnb)
+
+
+# --- 1. PREPARE THE COLOR MAPPING ---
+# Create the named vector that explicitly tells ggplot which color to use for which platform.
+# This is the crucial step you were missing.
+platform_color_mapping <- c(
+  "web"       = hnb_colors["dark_blue"],
+  "facebook"  = hnb_colors["medium_blue"],
+  "twitter"   = hnb_colors["light_grey"],
+  "forum"     = hnb_colors["light_grey"],
+  "youtube"   = hnb_colors["light_grey"],
+  "reddit"    = hnb_colors["light_grey"],
+  "comment"   = hnb_colors["accent_red"],
+  "tiktok"    = hnb_colors["light_grey"],
+  "instagram" = hnb_colors["light_grey"]
+)
+
+
+
+```
+
+## Kontekst
+
+- > **Digitalni medijski prostor u RH:** [Definiraju ga](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/01-kontekst.html) politička ekonomija digitalnog klika, prijeđeni put i algoritamska arhitektura javnog diskursa.
+
+- > **Komunikacija središnjih banaka:** Značajna promjena od tajnovitosti do transparentnosti (1980e do 2000e), preko komunikacijske revolucije (1990e do ranih 2000ih), do aktivnog angažmana u medijskom prostoru.
+
+- > **Ekonomska literatura:** Računalne društvene znanosti i korištenje velikih podataka su standardni u sve većem broju primjena u makroekonomiji i financijama.
+
+---
+
+## Digitalni medijski podatci
+
+Alternativni podatci nisu zamjena nego nadopuna!
+
+::: {.columns}
+::: {.column width="50%"}
+#### Strukturirani ekonomski podatci 
+
+-   DZS ankete, FINA (GIF) izvještaji, GDP
+-   **Prednosti:** Kvaliteta, struktura, pouzdanost
+-   **Nedostatci:** Spori, skupi, niska frkvencija
+:::
+
+::: {.column width="50%"}
+#### Digitalni medijski podatci ⚡️
+
+-   Vijesti, društvene mreže, tražilice, senzori
+-   **Prednosti:** U stvarnom vremenu, otkrivene preferencije, novi uvidi
+-   **Nedostatci:** Bučni, nestrukturirani, pristrani
+:::
+:::
+
+---
+
+## Digitalni medijski prostor RH
+
+::: {.panel-tabset}
+#### Koncept
+
+Podatci uključuju: 
+<br><br>
+-  razdoblje 2021-06/2024-06
+<br><br>
+-  uključuju sve javne objave (N~21mil) u RH
+<br><br>
+-  platforme:  web, fb, ig, x, yt i reddit, forum, komentari
+
+#### Objave
+```{r plot1, echo=FALSE, message=FALSE, warning=FALSE}
+# Učitavanje potrebnih paketa
+required_packages <- c(
+  "duckdb",       # Za efikasno upravljanje podacima slično bazi podataka
+  "dplyr",        # Za manipulaciju podacima
+  "ggplot2",      # Za vizualizacije
+  "lubridate",    # Za rad s datumima i vremenom
+  "scales",       # Za formatiranje brojeva u vizualizacijama
+  "knitr",        # Za kable tablice
+  "RColorBrewer", # Za palete boja
+  "stringr",      # Za manipulaciju tekstom
+  "tidyr",        # Za pivotiranje podataka za vizualizacije
+  "ggrepel",      # Za izbjegavanje preklapanja teksta na grafikonima
+  "fmsb",
+  "kableExtra"
+)
+
+for (pkg in required_packages) {
+  # Ovdje pretpostavljamo da su svi paketi instalirani
+  library(pkg, character.only = TRUE)
+}
+
+
+# --- Povezivanje s DuckDB bazom podataka ---
+# VAŽNO: Prilagodite putanju do vaše .duckdb datoteke!
+duckdb_file_path <- "D:/LUKA/DetermDB/determDB.duckdb" # <--- PRILAGODITE OVO!
+table_name <- "media_data"
+
+if (!file.exists(duckdb_file_path)) {
+  stop("DuckDB datoteka nije pronađena na navedenoj putanji: ", duckdb_file_path, 
+       "\nMolimo provjerite putanju ili pokrenite skriptu za učitavanje XLSX datoteka.")
+}
+
+con <- dbConnect(duckdb::duckdb(), dbdir = duckdb_file_path, read_only = FALSE)
+message("Povezano s perzistentnom DuckDB bazom za analizu.")
+l <- dbExecute(con, "SET memory_limit='16GB';") # Održavanje memorijskog limita
+
+# --- Provjera statusa tablice i broja objava ---
+# Ispravka za izvlačenje numeričke vrijednosti iz data.frame-a
+count_result <- dbGetQuery(con, paste0("SELECT COUNT(*) FROM ", table_name, ";"))[]
+
+# --- 2. Dominacija platformi i njihove napredne performanse (Udio, Učinkovitost i Interakcijski Profil) ---
+platform_overview_ultimate <- dbGetQuery(con, paste0("
+  SELECT
+    SOURCE_TYPE,
+    COUNT(*) AS num_posts,
+    SUM(INTERACTIONS) AS total_interactions,
+    SUM(REACH) AS total_reach,
+    AVG(INTERACTIONS) AS avg_interactions_per_post,
+    AVG(REACH) AS avg_reach_per_post,
+    AVG(ENGAGEMENT_RATE) AS platform_avg_engagement_rate,
+    AVG(VIRALITY) AS platform_avg_virality,
+    (SUM(SHARE_COUNT) * 1.0 / NULLIF(SUM(INTERACTIONS), 0)) * 100 AS platform_shareability_index,
+    (SUM(LIKE_COUNT) * 1.0 / NULLIF(SUM(INTERACTIONS), 0)) * 100 AS platform_like_ratio,
+    (SUM(COMMENT_COUNT) * 1.0 / NULLIF(SUM(INTERACTIONS), 0)) * 100 AS platform_comment_ratio
+  FROM ", table_name, "
+  GROUP BY SOURCE_TYPE
+  ORDER BY num_posts DESC;
+")) %>%
+  mutate(across(c(platform_avg_engagement_rate, platform_avg_virality, platform_shareability_index, platform_like_ratio, platform_comment_ratio),
+                ~ifelse(is.nan(.), 0, .))) # Handle potential NaN for display
+
+
+
+# Vizualizacija 1: Ukupan broj objava po platformi (General Overview - Posts per Platform)
+ggplot(
+  platform_overview_ultimate, 
+  # Modern syntax for horizontal bars: y-axis is the category, x-axis is the value
+  aes(x = num_posts, y = reorder(SOURCE_TYPE, num_posts), fill = SOURCE_TYPE)
+) +
+  
+  # geom_col() is the modern replacement for geom_bar(stat="identity")
+  geom_col() +
+  
+  # Add formatted text labels that match the plot's font
+  geom_text(
+    aes(label = scales::comma(num_posts, accuracy = 1)), 
+    hjust = -0.1, 
+    size = 3.5, 
+    family = "Roboto Mono" # Ensures font consistency with the global theme
+  ) +
+  
+  # THE FIX: Apply your custom color mapping
+  scale_fill_manual(values = platform_color_mapping) +
+  
+  # Format the x-axis and add space for labels
+  scale_x_continuous(
+    labels = scales::comma, 
+    expand = expansion(mult = c(0.01, 0.15))
+  ) +
+  
+  # Remove the redundant legend
+  guides(fill = "none") +
+  
+  # Add clearer, more professional titles
+  labs(
+    title = "Ukupan broj objava po platformi",
+    subtitle = "",
+    x = "Broj objava",
+    y = "Tip platforme"
+  ) +
+  
+  # Final theme tweaks for a cleaner look
+  theme(
+    panel.grid.major.y = element_blank(), # Remove horizontal grid lines for focus
+    panel.grid.minor.x = element_blank()
+  )
+
+
+```
+
+#### Interakcije
+```{r}
+# Vizualizacija 2: Ukupne interakcije po platformi (General Overview - Interactions per Platform)
+ggplot(
+  platform_overview_ultimate, 
+  # Modern syntax: y-axis is the category, x-axis is the value
+  aes(x = total_interactions, y = reorder(SOURCE_TYPE, total_interactions), fill = SOURCE_TYPE)
+) +
+  
+  # Use geom_col() for a cleaner look
+  geom_col() +
+  
+  # Add formatted text labels with the correct font
+  geom_text(
+    aes(label = scales::comma(total_interactions, accuracy = 1)), 
+    hjust = -0.1, 
+    size = 3.5, 
+    family = "Roboto Mono" # Ensures font consistency
+  ) +
+  
+  # APPLY THE FIX: Use your custom color mapping
+  scale_fill_manual(values = platform_color_mapping) +
+  
+  # Format the x-axis and add space for labels
+  scale_x_continuous(
+    labels = scales::comma, 
+    expand = expansion(mult = c(0.01, 0.15))
+  ) +
+  
+  # Remove the redundant legend
+  guides(fill = "none") +
+  
+  # Use the clear, professional titles from your original code
+  labs(
+    title = "Ukupne interakcije po platformi ",
+    subtitle = "Gdje se generira najveći ukupan angažman publike?",
+    x = "Ukupne interakcije",
+    y = "Tip platforme"
+  ) +
+  
+  # Final theme tweaks for a clean, professional look
+  theme(
+    panel.grid.major.y = element_blank(), # Remove horizontal grid lines
+    panel.grid.minor.x = element_blank()
+  )
+```
+
+#### Efikasnost
+```{r}
+# --- 1. THE COLOR MAPPING (Should already be defined in your script) ---
+# Reusing this ensures a consistent visual identity across all your plots.
+platform_color_mapping <- c(
+  "web"       = hnb_colors["dark_blue"],
+  "facebook"  = hnb_colors["medium_blue"],
+  "twitter"   = hnb_colors["light_grey"],
+  "forum"     = hnb_colors["light_grey"],
+  "youtube"   = hnb_colors["light_grey"],
+  "reddit"    = hnb_colors["light_grey"],
+  "comment"   = hnb_colors["accent_red"],
+  "tiktok"    = hnb_colors["light_grey"],
+  "instagram" = hnb_colors["light_grey"]
+)
+
+# --- 2. THE REVISED GGPLOT CODE FOR AVERAGE INTERACTIONS ---
+# Assuming your data is named 'platform_overview_ultimate'
+ggplot(
+  platform_overview_ultimate, 
+  # Modern syntax: y-axis is the category, x-axis is the value
+  aes(x = avg_interactions_per_post, y = reorder(SOURCE_TYPE, avg_interactions_per_post), fill = SOURCE_TYPE)
+) +
+  
+  # Use geom_col() for a cleaner look
+  geom_col() +
+  
+  # Add formatted text labels with the correct font.
+  # round() is a great choice for averages with decimals.
+  geom_text(
+    aes(label = round(avg_interactions_per_post, 2)), 
+    hjust = -0.1, 
+    size = 3.5, 
+    family = "Roboto Mono" # Ensures font consistency
+  ) +
+  
+  # APPLY THE FIX: Use your custom color mapping
+  scale_fill_manual(values = platform_color_mapping) +
+  
+  # Format the x-axis and add space for labels
+  scale_x_continuous(
+    labels = scales::comma, 
+    expand = expansion(mult = c(0.01, 0.15))
+  ) +
+  
+  # Remove the redundant legend
+  guides(fill = "none") +
+  
+  # Use the clear, professional titles from your original code
+  labs(
+    title = "Prosječne interakcije po objavi po platformi",
+    subtitle = "",
+    x = "Prosječne interakcije po objavi",
+    y = "Tip platforme"
+  ) +
+  
+  # Final theme tweaks for a clean, professional look
+  theme(
+    panel.grid.major.y = element_blank(), # Remove horizontal grid lines
+    panel.grid.minor.x = element_blank()
+  )
+```
+
+#### Efikasnost 2
+```{r}
+# --- 2. THE REVISED GGPLOT CODE FOR TOTAL REACH ---
+# Assuming your data is named 'platform_overview_ultimate'
+ggplot(
+  platform_overview_ultimate, 
+  # Modern syntax: y-axis is the category, x-axis is the value
+  aes(x = total_reach, y = reorder(SOURCE_TYPE, total_reach), fill = SOURCE_TYPE)
+) +
+  
+  # Use geom_col() for a cleaner look
+  geom_col() +
+  
+  # Add formatted text labels with the correct font
+  geom_text(
+    aes(label = scales::comma(total_reach, accuracy = 1)), 
+    hjust = -0.1, 
+    size = 3.5, 
+    family = "Roboto Mono" # Ensures font consistency
+  ) +
+  
+  # APPLY THE FIX: Use your consistent, on-brand color mapping
+  scale_fill_manual(values = platform_color_mapping) +
+  
+  # Format the x-axis and add space for labels
+  scale_x_continuous(
+    labels = scales::comma, 
+    expand = expansion(mult = c(0.01, 0.15))
+  ) +
+  
+  # Remove the redundant legend
+  guides(fill = "none") +
+  
+  # Use the clear, professional titles from your original code
+  labs(
+    title = "Ukupan doseg po  platformi",
+    subtitle = "Gdje se ostvaruje najveći ukupan doseg publike?",
+    x = "Ukupan doseg",
+    y = "Tip platforme"
+  ) +
+   # Final theme tweaks for a clean, professional look
+  theme(
+    panel.grid.major.y = element_blank(), # Remove horizontal grid lines
+    panel.grid.minor.x = element_blank())
+```
+
+#### Dinamika
+```{r}
+monthly_full_trends <- dbGetQuery(con, paste0("
+  SELECT
+    strftime(DATETIME, '%Y-%m') AS month_label,
+    strftime(DATETIME, '%Y') AS year,
+    strftime(DATETIME, '%m') AS month_num,
+    COUNT(*) AS num_posts,
+    SUM(INTERACTIONS) AS total_interactions,
+    SUM(REACH) AS total_reach,
+    AVG(INTERACTIONS) AS avg_interactions_per_post,
+    AVG(REACH) AS avg_reach_per_post,
+    AVG(ENGAGEMENT_RATE) AS monthly_avg_engagement_rate,
+    AVG(VIRALITY) AS monthly_avg_virality,
+    (SUM(SHARE_COUNT) * 1.0 / NULLIF(SUM(INTERACTIONS), 0)) * 100 AS monthly_shareability_index
+  FROM ", table_name, "
+  WHERE DATETIME IS NOT NULL
+  GROUP BY month_label, year, month_num
+  ORDER BY month_label;
+")) %>%
+  mutate(month = ymd(paste0(month_label, "-01"))) %>%
+  filter(!is.na(month)) %>%
+  mutate(across(c(monthly_avg_engagement_rate, monthly_avg_virality, monthly_shareability_index),
+                ~ifelse(is.nan(.), 0, .))) %>%
+  
+  # --- FIX IS HERE: Remove the last row (the incomplete month) ---
+  slice(1:(n()-1))
+
+
+# The rest of your plotting code remains exactly the same.
+# It will now plot without the final drop.
+coeff <- max(monthly_full_trends$total_interactions, na.rm = TRUE) / max(monthly_full_trends$num_posts, na.rm = TRUE)
+
+    
+# --- 1. THE COLOR PALETTE (Should already be in your setup chunk) ---
+hnb_colors <- c(
+  dark_blue   = "#0D2C54",
+  accent_red  = "#C41E3A"
+  # Add other colors if needed for other plots
+)
+
+# --- 2. THE REVISED GGPLOT CODE ---
+# Assuming 'monthly_full_trends' and 'coeff' are calculated
+ggplot(monthly_full_trends, aes(x = month)) +
+  
+  # THE FIX: Map color to a descriptive label *inside* aes()
+  # This tells ggplot to treat them as different series for the legend
+  geom_line(aes(y = num_posts, color = "Broj objava"), linewidth = 1) +
+  geom_point(aes(y = num_posts, color = "Broj objava"), size = 2.5) +
+  
+  geom_line(aes(y = total_interactions / coeff, color = "Ukupne interakcije"), linewidth = 1) +
+  geom_point(aes(y = total_interactions / coeff, color = "Ukupne interakcije"), size = 2.5) +
+  
+  # Define the primary and secondary y-axes
+  scale_y_continuous(
+    name = "Broj objava",
+    labels = scales::comma,
+    sec.axis = sec_axis(~ . * coeff, name = "Ukupne interakcije", labels = scales::comma)
+  ) +
+  
+  # THE CRUCIAL FIX: Use scale_color_manual to connect the labels to your brand colors
+  # The names here ("Broj objava") MUST EXACTLY MATCH the strings in aes()
+  scale_color_manual(
+    name = "Metrika:", 
+    values = c(
+      "Broj objava" = hnb_colors["dark_blue"],
+      "Ukupne interakcije" = hnb_colors["accent_red"]
+    )
+  ) +
+  
+  # Use clear, professional labels
+  labs(
+    title = "Mjesečni trend objava i interakcija",
+    subtitle = "Usporedba produkcije sadržaja i angažmana publike (završeni mjeseci)",
+    x = "Mjesec",
+    y = "Broj objava"
+  ) +
+  
+  # Theme tweaks to color the axes to match the lines for maximum clarity
+  theme(
+    legend.position = "top",
+    # Color the left axis to match the 'Broj objava' line
+    axis.title.y.left = element_text(color = hnb_colors["dark_blue"], face = "bold"),
+    axis.text.y.left = element_text(color = hnb_colors["dark_blue"]),
+    
+    # Color the right axis to match the 'Ukupne interakcije' line
+    axis.title.y.right = element_text(color = hnb_colors["accent_red"], face = "bold"),
+    axis.text.y.right = element_text(color = hnb_colors["accent_red"])
+  )
+
+  
+
+
+
+```
+
+
+
+:::
+
+---
+
+## Mjerenje ekonomskog sentimenta
+
+Barometar za hrvatsko gospodarstvo u stvarnom vremenu, sličan poznatom indeksu Ekonomske neizvjesnosti (EPU).
+
+::: {.panel-tabset}
+#### Koncept
+
+Praćenjem učestalosti ključnih riječi vezanih za ekonomsko zdravlje (`gospodarstvo`, `recesija`, `nezaposlenost`) u glavnim hrvatskim medijima, možemo konstruirati robusni, visokofrekventni indeks ekonomskog sentimenta.
+
+#### Interaktivni demo
+
+```{r plot2, echo=FALSE, message=FALSE, warning=FALSE}
+# --- MOCK DATA ---
+set.seed(123)
+sentiment_data <- tibble(
+  date = seq.Date(from = as.Date("2020-01-01"), to = as.Date("2023-12-31"), by = "week"),
+  sentiment_index = 100 + cumsum(rnorm(length(date), 0, 1.5)) + sin(seq_along(date)/10) * 5)
+
+# --- PLOTTING ---
+p <- ggplot(sentiment_data, aes(x = date, y = sentiment_index)) +
+  geom_line(color = "#00539C", linewidth = 0.8) +
+  labs(title = "Indeks ekonomskog sentimenta (Prototip)", y = "Indeks", x = "")
+
+# --- MAKE IT INTERACTIVE ---
+ggplotly(p, tooltip = c("x", "y"))
+```
+:::
+
+---
+
+## Ostale potencijalne primjene
+
+Metodologija je fleksibilna i može se proširiti na praćenje različitih sektora:
+
+- > **Financijska stabilnost:** Praćenje sentimenta prema bankarskom sektoru ili tržištu nekretnina (`banke`, `kredit`, `nekretnine`).
+
+- > **Tržište rada:** Praćenje rasprava o traženju posla, otkazima i pritiscima na plaće.
+
+- > **Regionalna analiza:** Korištenje geolokacijskih podataka za uvid u regionalne ekonomske nejednakosti.
+
+
+---
+
+## Prijedlog projekta
+
+### Pilot: "HNB Digitalni ekonomski puls"
+
+Naš prijedlog je fokusiran, 6-mjesečni pilot za dokazivanje vrijednosti ovog pristupa.
+
+-   **Cilj:** Razviti i testirati prototip indeksa sentimenta inflacije u stvarnom vremenu za Hrvatsku.
+
+-   **Opseg:**
+    -   *Izvori podataka:* 2-3 glavna hrvatska news portala i Google Trends.
+    -   *Vremenski okvir:* Povijesna analiza (zadnjih 5 godina) i praćenje uživo.
+    -   *Validacija:* Usporedba indeksa s HNB-ovim anketama potrošača i službenim HICP podacima.
+
+-   **Vremenski plan:**
+    -   **Faza 1 (Mjesec 1-2):** Infrastruktura i prikupljanje podataka
+    -   **Faza 2 (Mjesec 3-4):** Razvoj NLP modela i konstrukcija indeksa
+    -   **Faza 3 (Mjesec 5-6):** Validacija, prototip nadzorne ploče i završni izvještaj
+
+---
+
+## Isporuke i Ishodi
+
+Po završetku pilota, HNB će dobiti:
+
+-   **Potpuno dokumentiranu i ponovljivu R kodnu bazu.**
+-   **Validacijski izvještaj** koji detaljno opisuje statistička svojstva indeksa.
+-   **Interaktivni prototip Quarto nadzorne ploče** za internu upotrebu.
+-   **Završnu prezentaciju** nalaza i preporuka za daljnji razvoj.
+
+---
+
+## Potrebni resursi
+
+Ovaj projekt je dizajniran da bude agilan i visoko kolaborativan.
+
+#### Tim
+-   1-2 podatkovna znanstvenika / ekonomista.
+-   Kontakt točka iz odjela za istraživanje HNB-a.
+
+#### Tehnologija
+-   Standardni računalni resursi.
+-   Nije potreban specijalizirani hardver za pilot fazu.
+
+#### Podatci
+-   Koriste se isključivo javno dostupni podatci.
+-   Nema potrebe za osjetljivim internim podacima HNB-a.
+
+---
+
+## Zaključak
+
+### Vizija budućnosti i idući koraci
+
+- > Ovaj pilot projekt je **niskorizičan prvi korak visokog utjecaja** za integraciju podataka u stvarnom vremenu u analitički set alata HNB-a.
+
+- > **Dugoročna vizija:** Ovo je temelj za sveobuhvatan "nowcasting" sustav, koji poboljšava sposobnost HNB-a da prati gospodarstvo i učinkovito komunicira.
+
+- > **Poziv na akciju:**
+    1.  Osigurati odobrenje za 6-mjesečni pilot projekt.
+    2.  Zakazati tehnički sastanak s relevantnim odjelima HNB-a.
+    3.  Krenimo graditi budućnost ekonomskog praćenja za Hrvatsku.
+
+---
+
+## Hvala! / Pitanja?
+
+**Kontakt:**
+
+-   [Luka Šikić](https://www.unicath.hr/odjeli-i-fakultet/nastavnici/luka-sikic)
+-   luka.sikic@unicath.hr
+-   [linkedin](https://www.linkedin.com/in/luka-sikic-662ba869/)
