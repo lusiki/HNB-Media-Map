@@ -1,6 +1,15 @@
 /* Import the Roboto Mono font from Google Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
 
+/* --- NEW RULE FOR THE BACKGROUND --- */
+/* This targets the main presentation container and sets its background */
+.reveal {
+  background-color: #f5f5f5; /* A nice, soft light gray */
+}
+/* ---------------------------------- */
+
+
+
 /* Apply the font to the entire presentation body */
 .reveal .slides {
   font-family: 'Roboto Mono', monospace;
