@@ -15,6 +15,9 @@ Analiza predstavlja dio šireg projekta mapiranja medijskog prostora ključnih h
 Izvor podataka je baza podataka s preko 25 milijuna medijskih objava (populacija objava u digitalnom medijskom prostoru RH) iz koje su identificirani sve objave koje spominju HNB (~20k) .
 Vremenski okvir za analizu je razdoblje  2021.–06/2024. godina.Primijenjene metode analize kombiniraju mrežne analize, obrade prirodnog jezika (NLP), tematskog modeliranja i analize sentimenta
     
+## Prezentacija
+
+Sažeti prikaz rezultata i prijedlog sustava za praćenje medijskog prostora HNB-a dostupan je u [prezentaciji](https://raw.githack.com/lusiki/HNB-Media-Map/main/presentation.html).
 
 ## Struktura istraživanja
 

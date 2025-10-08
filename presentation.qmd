@@ -1,21 +1,23 @@
 ---
 title: "Relevantnost digitalnog medijskog prostora (podataka) za HNB"
-subtitle: "Prijedlog pilot projekta sustava za medijsko praćenje u realnom vremenu"
+subtitle: "Prijedlog ustava za medijsko praćenje u realnom vremenu"
 author: "Luka Sikic, PhD"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 format: 
   revealjs:
     theme: simple
-    logo: photo.png
+    logo: photo.jpg  # MAKE SURE 'photo.png' IS IN THE SAME FOLDER
     footer: "Projektni prijedlog za HNB"
     slide-number: c/t
-    chalkboard: true
     css: pptstyle.css
+    self-contained: true # This is great for sharing
+    # chalkboard: true <-- REMOVED because it conflicts with self-contained
     title-slide-attributes:
       data-background-image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg"
       data-background-size: cover
       data-background-opacity: "0.5"
 ---
+
 
 ```{r setup, include=FALSE}
 # Load necessary packages for the presentation
@@ -103,9 +105,9 @@ Podatci uključuju:
 <br><br>
 -  razdoblje 2021-06/2024-06
 <br><br>
--  uključuju sve javne objave (N~21mil) u RH
+-  uključuju sve javne objave (N~21mil) 
 <br><br>
--  platforme:  web, fb, ig, x, yt i reddit, forum, komentari
+-  platforme:  web,fb,ig,x,yt,reddit,forum,komentari
 
 #### Objave
 ```{r plot1, echo=FALSE, message=FALSE, warning=FALSE}
@@ -413,35 +415,37 @@ coeff <- max(monthly_full_trends$total_interactions, na.rm = TRUE) / max(monthly
 hnb_colors <- c(
   dark_blue   = "#0D2C54",
   accent_red  = "#C41E3A"
-  # Add other colors if needed for other plots
 )
 
-# --- 2. THE REVISED GGPLOT CODE ---
-# Assuming 'monthly_full_trends' and 'coeff' are calculated
+# --- 2. THE "BULLETPROOF" GGPLOT CODE ---
+
+# DEFINE LABELS AS VARIABLES to prevent typos
+label_posts <- "Broj objava"
+label_interactions <- "Ukupne interakcije"
+
 ggplot(monthly_full_trends, aes(x = month)) +
   
-  # THE FIX: Map color to a descriptive label *inside* aes()
-  # This tells ggplot to treat them as different series for the legend
-  geom_line(aes(y = num_posts, color = "Broj objava"), linewidth = 1) +
-  geom_point(aes(y = num_posts, color = "Broj objava"), size = 2.5) +
+  # Use the variables for the color labels
+  geom_line(aes(y = num_posts, color = label_posts), linewidth = 1) +
+  geom_point(aes(y = num_posts, color = label_posts), size = 2.5) +
   
-  geom_line(aes(y = total_interactions / coeff, color = "Ukupne interakcije"), linewidth = 1) +
-  geom_point(aes(y = total_interactions / coeff, color = "Ukupne interakcije"), size = 2.5) +
+  geom_line(aes(y = total_interactions / coeff, color = label_interactions), linewidth = 1) +
+  geom_point(aes(y = total_interactions / coeff, color = label_interactions), size = 2.5) +
   
   # Define the primary and secondary y-axes
   scale_y_continuous(
-    name = "Broj objava",
+    name = label_posts, # Use the variable here too for consistency
     labels = scales::comma,
-    sec.axis = sec_axis(~ . * coeff, name = "Ukupne interakcije", labels = scales::comma)
+    sec.axis = sec_axis(~ . * coeff, name = label_interactions, labels = scales::comma)
   ) +
   
-  # THE CRUCIAL FIX: Use scale_color_manual to connect the labels to your brand colors
-  # The names here ("Broj objava") MUST EXACTLY MATCH the strings in aes()
+  # THE CRUCIAL FIX: Create the named vector using the variables
+  # This makes it impossible for them to be mismatched
   scale_color_manual(
     name = "Metrika:", 
-    values = c(
-      "Broj objava" = hnb_colors["dark_blue"],
-      "Ukupne interakcije" = hnb_colors["accent_red"]
+    values = setNames(
+      c(hnb_colors["dark_blue"], hnb_colors["accent_red"]), 
+      c(label_posts, label_interactions)
     )
   ) +
   
@@ -450,34 +454,26 @@ ggplot(monthly_full_trends, aes(x = month)) +
     title = "Mjesečni trend objava i interakcija",
     subtitle = "Usporedba produkcije sadržaja i angažmana publike (završeni mjeseci)",
     x = "Mjesec",
-    y = "Broj objava"
+    y = label_posts
   ) +
   
   # Theme tweaks to color the axes to match the lines for maximum clarity
   theme(
     legend.position = "top",
-    # Color the left axis to match the 'Broj objava' line
     axis.title.y.left = element_text(color = hnb_colors["dark_blue"], face = "bold"),
     axis.text.y.left = element_text(color = hnb_colors["dark_blue"]),
-    
-    # Color the right axis to match the 'Ukupne interakcije' line
     axis.title.y.right = element_text(color = hnb_colors["accent_red"], face = "bold"),
     axis.text.y.right = element_text(color = hnb_colors["accent_red"])
   )
 
-  
-
-
-
 ```
-
 
 
 :::
 
 ---
 
-## Mjerenje ekonomskog sentimenta
+## Strateška razina
 
 Barometar za hrvatsko gospodarstvo u stvarnom vremenu, sličan poznatom indeksu Ekonomske neizvjesnosti (EPU).
 
