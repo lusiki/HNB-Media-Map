@@ -31,7 +31,7 @@ Odgovara na pitanja TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. 
 
 Istražuje O ČEMU se govori. Kroz detaljnu tematsku analizu identificira i kvantificira ključne teme u raspravama o HNB-u, uključujući monetarnu politiku, uvođenje eura, financijsku stabilnost i javnu percepciju institucije.
 
-### Faza 3: [Atmosfera diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Diskurs.html)
+### Faza 3: [Atmosfera diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Događaji.html)
 
 Analizira KAKO se o HNB-u govori. Mjeri emocionalni ton rasprave (stručan, kritičan, neutralan), razinu konflikta u jeziku te dominantne narativne okvire koji oblikuju javnu percepciju rada središnje banke.
 
