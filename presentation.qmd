@@ -21,8 +21,8 @@ format:
 
 ```{r setup, include=FALSE}
 # Load necessary packages for the presentation
-library(scales)
-library(patchwork)
+library(scales)#
+#library(patchwork)
 library(ggrepel)
 library(udpipe)
 library(dplyr)
@@ -42,38 +42,31 @@ library(lubridate)
 library(data.table)
 library(readxl)
 library(plotly)
+library(patchwork)
+
 # --- 0. SETUP (This should already be in your setup chunk) ---
-hnb_colors <- c(
-  dark_blue   = "#0D2C54",
-  medium_blue = "#2E5A8C",
-  accent_red  = "#C41E3A",
-  light_grey  = "#A9A9A9",
-  medium_grey = "#696969"
+platform_color_mapping <- c(
+  "web"       = "#003366",  # HNB Dark Blue
+  "facebook"  = "#5B9BD5",  # HNB Medium Blue
+  "comment"   = "#C00000",  # HNB Accent Red
+  "twitter"   = "#BF8F00",  # HNB Accent Gold
+  "forum"     = "#005F56",  # HNB Dark Green
+  "youtube"   = "#7F7F7F",  # HNB Medium Grey
+  "reddit"    = "#A0522D"
 )
 
-theme_hnb <- theme_minimal(base_size = 14, base_family = "Roboto Mono") +
-  theme(
-    plot.title = element_text(face = "bold", size = 16, color = hnb_colors["dark_blue"]),
-    plot.subtitle = element_text(size = 12, color = hnb_colors["medium_grey"]),
-    legend.position = "top"
-  )
-theme_set(theme_hnb)
+# theme_hnb <- theme_minimal(base_size = 14, base_family = "Roboto Mono") +
+#   theme(
+#     plot.title = element_text(face = "bold", size = 16, color = hnb_colors["dark_blue"]),
+#     plot.subtitle = element_text(size = 12, color = hnb_colors["medium_grey"]),
+#     legend.position = "top"
+#   )
+# theme_set(theme_hnb)
 
 
 # --- 1. PREPARE THE COLOR MAPPING ---
 # Create the named vector that explicitly tells ggplot which color to use for which platform.
 # This is the crucial step you were missing.
-platform_color_mapping <- c(
-  "web"       = hnb_colors["dark_blue"],
-  "facebook"  = hnb_colors["medium_blue"],
-  "twitter"   = hnb_colors["light_grey"],
-  "forum"     = hnb_colors["light_grey"],
-  "youtube"   = hnb_colors["light_grey"],
-  "reddit"    = hnb_colors["light_grey"],
-  "comment"   = hnb_colors["accent_red"],
-  "tiktok"    = hnb_colors["light_grey"],
-  "instagram" = hnb_colors["light_grey"]
-)
 
 
 
@@ -157,7 +150,7 @@ for (pkg in required_packages) {
 
 # --- Povezivanje s DuckDB bazom podataka ---
 # VAŽNO: Prilagodite putanju do vaše .duckdb datoteke!
-duckdb_file_path <- "D:/LUKA/DetermDB/determDB.duckdb" # <--- PRILAGODITE OVO!
+duckdb_file_path <- "C:/Users/lukas/Determbaza/DetermDB/determDB.duckdb" # <--- PRILAGODITE OVO!
 table_name <- "media_data"
 
 if (!file.exists(duckdb_file_path)) {
@@ -171,7 +164,7 @@ l <- dbExecute(con, "SET memory_limit='16GB';") # Održavanje memorijskog limita
 
 # --- Provjera statusa tablice i broja objava ---
 # Ispravka za izvlačenje numeričke vrijednosti iz data.frame-a
-count_result <- dbGetQuery(con, paste0("SELECT COUNT(*) FROM ", table_name, ";"))[]
+count_result <- dbGetQuery(con, paste0("SELECT COUNT(*) FROM ", table_name, ";"))[[1]]
 
 # --- 2. Dominacija platformi i njihove napredne performanse (Udio, Učinkovitost i Interakcijski Profil) ---
 platform_overview_ultimate <- dbGetQuery(con, paste0("
@@ -341,15 +334,17 @@ ggplot(
 # --- 1. THE COLOR MAPPING (Should already be defined in your script) ---
 # Reusing this ensures a consistent visual identity across all your plots.
 platform_color_mapping <- c(
-  "web"       = hnb_colors["dark_blue"],
-  "facebook"  = hnb_colors["medium_blue"],
-  "twitter"   = hnb_colors["light_grey"],
-  "forum"     = hnb_colors["light_grey"],
-  "youtube"   = hnb_colors["light_grey"],
-  "reddit"    = hnb_colors["light_grey"],
-  "comment"   = hnb_colors["accent_red"],
-  "tiktok"    = hnb_colors["light_grey"],
-  "instagram" = hnb_colors["light_grey"]
+  "web"       = "#003366",  # HNB Dark Blue
+  "facebook"  = "#5B9BD5",  # HNB Medium Blue
+  "comment"   = "#C00000",  # HNB Accent Red
+  "twitter"   = "#BF8F00",  # HNB Accent Gold
+  "forum"     = "#005F56",  # HNB Dark Green
+  "reddit"    = "#A0522D",  # Muted Sienna
+  
+  # --- New Additions ---
+  "youtube"   = "#4A4A4A",  # Professional Charcoal Grey
+  "tiktok"    = "#8A798C",  # Muted Mauve
+  "instagram" = "#5D478B"   # Deep Slate Purple
 )
 
 # --- 2. THE REVISED GGPLOT CODE FOR AVERAGE INTERACTIONS ---
@@ -399,8 +394,8 @@ ggplot(
   )
 ```
 
-#### Proba I
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+```{r probaI, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 
 
 # --- 1. CREATE THE GGPLOT OBJECT 'p' (Your existing code is perfect) ---
@@ -441,8 +436,7 @@ ggplotly(p, tooltip = "text", height = dynamic_height, width = NULL)
 
 ```
 
-#### Proba II
-```{r, echo=FALSE, message=FALSE, warning=FALSE}
+```{r probaII, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
 # --- 1. PREPARE THE DATA (This part is correct) ---
 plot_data <- platform_overview_ultimate %>%
   # Use forcats::fct_reorder for robust ordering
@@ -515,14 +509,6 @@ monthly_full_trends <- dbGetQuery(con, paste0("
 coeff <- max(monthly_full_trends$total_interactions, na.rm = TRUE) / max(monthly_full_trends$num_posts, na.rm = TRUE)
 
     
-# --- 1. THE COLOR PALETTE (Should already be in your setup chunk) ---
-hnb_colors <- c(
-  dark_blue   = "#0D2C54",
-  accent_red  = "#C41E3A"
-)
-
-# --- 2. THE "BULLETPROOF" GGPLOT CODE ---
-
 # DEFINE LABELS AS VARIABLES to prevent typos
 label_posts <- "Broj objava"
 label_interactions <- "Ukupne interakcije"
@@ -543,12 +529,11 @@ ggplot(monthly_full_trends, aes(x = month)) +
     sec.axis = sec_axis(~ . * coeff, name = label_interactions, labels = scales::comma)
   ) +
   
-  # THE CRUCIAL FIX: Create the named vector using the variables
-  # This makes it impossible for them to be mismatched
+  # --- CHANGED: Hard-coded hex values ---
   scale_color_manual(
     name = "Metrika:", 
     values = setNames(
-      c(hnb_colors["dark_blue"], hnb_colors["accent_red"]), 
+      c("#003366", "#C00000"), 
       c(label_posts, label_interactions)
     )
   ) +
@@ -561,16 +546,20 @@ ggplot(monthly_full_trends, aes(x = month)) +
     y = label_posts
   ) +
   
-  # Theme tweaks to color the axes to match the lines for maximum clarity
+  # --- CHANGED: Hard-coded hex values in the theme ---
+  theme_minimal(base_size = 12) + # Added base_size for better readability
   theme(
     legend.position = "top",
-    axis.title.y.left = element_text(color = hnb_colors["dark_blue"], face = "bold"),
-    axis.text.y.left = element_text(color = hnb_colors["dark_blue"]),
-    axis.title.y.right = element_text(color = hnb_colors["accent_red"], face = "bold"),
-    axis.text.y.right = element_text(color = hnb_colors["accent_red"])
+    axis.title.y.left = element_text(color = "#003366", face = "bold"),
+    axis.text.y.left = element_text(color = "#003366"),
+    axis.title.y.right = element_text(color = "#C00000", face = "bold"),
+    axis.text.y.right = element_text(color = "#C00000")
   )
 
 ```
+
+
+
 
 #### Dnevno
 
@@ -591,14 +580,15 @@ Dva svijeta HNB: Stručna rasprava protiv javne arene!
 
 Analiza 20k medijskih objava o HNB otkriva zanimljivu sliku. To je priča o dva različita svijeta koji se rijetko dodiruju... sve dok ih ključna tema ne prisili na to. Inflacija, od monetarnog do medijskog fenomena!
 
-#### Centralnost
+
+#### Interakcije
 ```{r plot22, echo=FALSE, message=FALSE, warning=FALSE}
 
 # --- Priprema podataka (izvršava se u pozadini) ---
 
 # Učitavanje glavne baze podataka
 # remove titkok from SOURCE_TYPE
-dta <- readRDS("./hnb.rds") %>%
+dta <- readRDS("C:/Users/lukas/Determbaza/hnb.rds") %>%
   mutate(
     DATE = as.Date(DATE), # Convert the column to Date class first
     year = as.integer(format(DATE, "%Y"))
@@ -625,7 +615,7 @@ dta <- readRDS("./hnb.rds") %>%
 #   mutate(doc_id = row_number())
 
 # Učitavanje prethodno obrađenih lingvističkih podataka (štedi vrijeme)
-files <- list.files("D:/LUKA/HNB/Language model sample", full.names = TRUE, pattern = "\\.rds")
+files <- list.files("C:/Users/lukas/Determbaza/Language model sample", full.names = TRUE, pattern = "\\.rds")
 nlp_results_df <- lapply(files, readRDS) %>%
   bind_rows() %>%
   mutate(doc_id = as.integer(doc_id))
@@ -834,28 +824,23 @@ dta_with_themes2 <- bind_cols(dta, theme_analysis_data2)
 
 ```
 
-```{r plot3, echo=FALSE, message=FALSE, warning=FALSE}
-thematic_intensity_data2 <- dta_enriched2 %>%
-  select(starts_with("norm_")) %>%
-  pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
-  mutate(topic = str_remove(topic, "norm_")) %>%
-  filter(intensity > 0)
 
-ggplot(thematic_intensity_data2, aes(x = intensity, y = fct_reorder(topic, intensity, .fun = median))) +
-  geom_density_ridges(scale = 2, fill = "#0072B2", color = "white", alpha = 0.8) +
-  scale_x_log10(breaks = c(1, 10, 100, 1000), labels = c("1", "10", "100", "1000")) +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribucija intenziteta tema",
-    subtitle = "Koliko su teme centralne za članke u kojima se pojavljuju?",
-    x = "Intenzitet teme (spominjanja na 1000 riječi, log skala)",
-    y = "Tema")
-  # ) +
-  # theme(panel.grid.major.y = element_blank())
-```
-
-#### Interakcije
 ```{r}
+
+
+topic_palette <- c(
+  "#003366",  # Dark Blue
+  "#5B9BD5",  # Medium Blue
+  "#C00000",  # Accent Red
+  "#BF8F00",  # Accent Gold
+  "#005F56",  # Dark Green
+  "#A0522D",  # Muted Sienna
+  "#7F7F7F",
+  "#8A798C"  # Muted Mauve
+  # Medium Grey
+)
+
+# --- 2. The data preparation (assuming it's already run) ---
 engagement_by_topic <- dta_enriched %>%
   filter(dominant_topic != "Nema Teme") %>%
   group_by(dominant_topic) %>%
@@ -865,17 +850,123 @@ engagement_by_topic <- dta_enriched %>%
   ) %>%
   arrange(desc(avg_interactions))
 
-ggplot(engagement_by_topic, aes(x = avg_interactions, y = reorder(dominant_topic, avg_interactions))) +
-  geom_col(fill = "#0072B2", width=0.8) +
-  geom_text(aes(label = round(avg_interactions)), hjust = -0.2, size=4) +
+
+# --- 3. Your plot code with the palette applied ---
+ggplot(engagement_by_topic, 
+       aes(x = avg_interactions, 
+           y = reorder(dominant_topic, avg_interactions), 
+           fill = dominant_topic)) +
+  
+  geom_col(width = 0.8) + 
+  geom_text(aes(label = round(avg_interactions)), hjust = -0.2, size = 4) +
   expand_limits(x = max(engagement_by_topic$avg_interactions) * 1.1) +
+  
+  # --- Apply your custom color palette ---
+  scale_fill_manual(values = topic_palette) +
+  
   theme_minimal(base_size = 14) +
   labs(title = "Koje teme generiraju najviše interakcija?",
        subtitle = "Prosječan broj interakcija po članku za svaku dominantnu temu",
-       x = "Prosječne interakcije", y = "Dominantna tema")
-# 
-# +
-#   theme(panel.grid.major.y = element_blank())
+       x = "Prosječne interakcije", 
+       y = "Dominantna tema") +
+  theme(legend.position = "none")
+```
+
+#### Interakcije II
+
+```{r}
+engagement_by_topic2 <- dta_enriched2 %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic) %>%
+  summarise(
+    avg_interactions = mean(INTERACTIONS, na.rm = TRUE),
+    total_articles = n()
+  ) %>%
+  arrange(desc(avg_interactions))
+
+# --- 2. Define your new 6-color palette ---
+topic_palette <- c(
+  "#003366",  # Dark Blue
+  "#5B9BD5",  # Medium Blue
+  "#C00000",  # Accent Red
+  "#BF8F00",  # Accent Gold
+  "#005F56",  # Dark Green
+  "#A0522D"   # Muted Sienna
+)
+
+# --- 3. The corrected and colored plot code ---
+ggplot(engagement_by_topic2, 
+       # Map fill color to the topic
+       aes(x = avg_interactions, 
+           y = reorder(dominant_topic, avg_interactions), 
+           fill = dominant_topic)) +
+  
+  # Remove the single fill color from here
+  geom_col(width = 0.8) + 
+  
+  geom_text(aes(label = round(avg_interactions)), hjust = -0.2, size = 4) +
+  
+  # Corrected to use the new data frame 'engagement_by_topic2'
+  expand_limits(x = max(engagement_by_topic2$avg_interactions) * 1.1) +
+  
+  # Apply your custom 6-color palette
+  scale_fill_manual(values = topic_palette) +
+  
+  theme_minimal(base_size = 14) +
+  labs(title = "Koje teme generiraju najviše interakcija?",
+       subtitle = "Prosječan broj interakcija po članku za svaku dominantnu temu",
+       x = "Prosječne interakcije", 
+       y = "Dominantna tema") +
+  
+  # Hide the y-axis grid and the redundant legend
+  theme(
+    panel.grid.major.y = element_blank(),
+    legend.position = "none"
+  )
+```
+
+#### Centralnost
+
+```{r plot3, echo=FALSE, message=FALSE, warning=FALSE}
+thematic_intensity_data2 <- dta_enriched2 %>%
+  select(starts_with("norm_")) %>%
+  pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 0)
+
+# --- 2. Define your 6-color palette ---
+topic_palette <- c(
+  "#003366",  # Dark Blue
+  "#5B9BD5",  # Medium Blue
+  "#C00000",  # Accent Red
+  "#BF8F00",  # Accent Gold
+  "#005F56",  # Dark Green
+  "#A0522D"   # Muted Sienna
+)
+
+# --- 3. The colored ggplot code ---
+ggplot(thematic_intensity_data2, 
+       # Map fill color to the topic variable
+       aes(x = intensity, 
+           y = fct_reorder(topic, intensity, .fun = median),
+           fill = topic)) +
+  
+  # Remove the static fill color from the geom
+  geom_density_ridges(scale = 2, color = "white", alpha = 0.8) +
+  
+  # Apply your custom color palette
+  scale_fill_manual(values = topic_palette) +
+  
+  scale_x_log10(breaks = c(1, 10, 100, 1000), labels = c("1", "10", "100", "1000")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribucija intenziteta tema",
+    subtitle = "Koliko su teme centralne za članke u kojima se pojavljuju?",
+    x = "Intenzitet teme (spominjanja na 1000 riječi, log skala)",
+    y = "Tema"
+  ) +
+  # Hide the redundant legend
+  theme(legend.position = "none")
 ```
 
 #### Mreža
@@ -1066,6 +1157,7 @@ conflict_lexicon <- unique(c(
   c("laž", "skandal", "napad", "radikalan", "ideologija", "licemjerje", "sramotno", "mržnja", "podjela", "raskol", "manipulacija", "propaganda", "ekstrem", "kontroverz", "sukob", "kriza")
 ))
 
+
 cli_scores <- lemmatized_words_with_freq %>%
   mutate(is_conflict = lemma %in% conflict_lexicon) %>%
   group_by(doc_id) %>%
@@ -1204,6 +1296,126 @@ graph_from_data_frame(graph_data, directed = FALSE) %>%
 
 ```
 
+#### Guverner
+
+
+```{r}
+
+
+lemmatized_words_with_freq <- nlp_results_df %>%
+  count(doc_id, lemma, name = "word_frequency")
+
+# --- 3.2: Izračun Sentiment Score-a (CroSentilex-Gold) ---
+sentiment_counts_gold <- lemmatized_words_with_freq %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  filter(sentiment_value != 0) %>%
+  count(doc_id, sentiment_value) %>%
+  pivot_wider(names_from = sentiment_value, values_from = n, values_fill = 0)
+if (!"1" %in% names(sentiment_counts_gold)) { sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`1` = 0) }
+if (!"-1" %in% names(sentiment_counts_gold)) { sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`-1` = 0) }
+document_sentiments_gold <- sentiment_counts_gold %>%
+  rename(positive_words = `1`, negative_words = `-1`) %>%
+  mutate(sentiment_score_gold = (positive_words - negative_words) / (positive_words + negative_words + 1e-6)) %>%
+  select(doc_id, sentiment_score_gold)
+
+# --- 3.3: Izračun Dominantne Emocije (NRC) ---
+document_emotions <- lemmatized_words_with_freq %>%
+  inner_join(nrc_lexicon_long, by = c("lemma" = "word")) %>%
+  group_by(doc_id, emotion) %>%
+  summarise(total_freq = sum(word_frequency), .groups="drop") %>%
+  group_by(doc_id) %>%
+  slice_max(order_by = total_freq, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(doc_id, dominant_emotion = emotion)
+
+# --- 3.4: Izračun Indeksa Konflikta (CLI i RCI) za financijske teme ---
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c("kriza", "kolaps", "neuspjeh", "pogreška", "kritika", "neodgovorno", "rizično", "zabrinjavajuće", "nestabilno", "problematično", "kontroverzno", "sporno", "sumnjivo", "loš", "katastrofal", "kaotičan", "recesija", "inflacija", "deflacija", "bankrot")
+))
+cli_scores <- lemmatized_words_with_freq %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    total_words = sum(word_frequency),
+    conflict_words = sum(word_frequency[is_conflict])
+  ) %>%
+  mutate(cli = (conflict_words / total_words) * 1000) %>% ungroup()
+
+dta_temp <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(document_emotions, by = "doc_id") %>%
+  left_join(cli_scores %>% select(doc_id, cli), by = "doc_id") %>%
+  mutate(
+    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion),
+    cli = ifelse(is.na(cli), 0, cli)
+  )
+
+avg_cli_media <- dta_temp %>% group_by(FROM) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_temp %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_final <- dta_temp %>%
+  left_join(avg_cli_media, by = "FROM") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+```
+
+
+
+
+```{r narrative-biography-robust, fig.height=9}
+# --- KOD ZA "ŽIVOTOPIS" MONETARNOG NARATIVA (ROBUSNA VERZIJA) ---
+
+# (Koraci 1 i 2 - pronalaženje dokumenata i izdvajanje konteksta)
+target_keyword <- "guverner"
+docs_with_target <- nlp_results_df %>%
+  filter(lemma == target_keyword) %>%
+  distinct(doc_id) %>%
+  pull(doc_id)
+
+context_words <- nlp_results_df %>%
+  filter(doc_id %in% docs_with_target) %>%
+  filter(upos %in% c("NOUN", "ADJ")) %>%
+  filter(lemma != target_keyword) %>%
+  inner_join(dta_final %>% select(doc_id, year, sentiment_score), by = "doc_id")
+
+# 3. KORAK: Agregacija
+associated_words_atmosphere <- context_words %>%
+  group_by(year, lemma) %>%
+  summarise(
+    total_cooccurrences = n(),
+    avg_sentiment = mean(sentiment_score, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# 4. KORAK: Prilagodljivo filtriranje
+top_associated_words_final <- associated_words_atmosphere %>%
+  group_by(year) %>%
+  # Uzimamo top 12 riječi po co-okurencijama za svaku godinu
+  arrange(desc(total_cooccurrences)) %>%
+  slice_head(n = 12) %>%
+  ungroup()
+
+# 5. KORAK: Vizualizacija
+ggplot(top_associated_words_final, aes(x = total_cooccurrences, y = reorder_within(lemma, total_cooccurrences, year), fill = avg_sentiment)) +
+  geom_col() +
+  scale_y_reordered() +
+  scale_fill_gradient2(low = "firebrick", mid = "white", high = "steelblue", midpoint = 0, name="Prosj. sentiment\nove kombinacije") +
+  facet_wrap(~ year, scales = "free_y") +
+  theme_minimal(base_size = 12) +
+  theme(strip.text = element_text(face = "bold")) +
+  labs(
+    title = "Evolucija i atmosfera narativa o guverneru HNB-a",
+    subtitle = "Boja stupca otkriva tonalitet specifičnog narativnog okvira",
+    x = "Broj zajedničkih pojavljivanja s riječi 'guverner'", y = "Asocirana riječ"
+  )
+```
+
 :::
 
 ---
@@ -1214,23 +1426,572 @@ graph_from_data_frame(graph_data, directed = FALSE) %>%
 ::: {.panel-tabset}
 #### Koncept
 
-Analiza 20k medijskih objava o Croatian National Bank otkriva zanimljivu sliku o njezinom javnom identitetu. To je priča o dva različita svijeta koji se rijetko dodiruju... sve dok ih ključna tema ne prisili na to. Inflacija, od monetarnog do medijskog fenomena!
-
-#### Kada I
-
-Metodologija je fleksibilna i može se proširiti na praćenje različitih sektora:
-
-- > **Financijska stabilnost:** Praćenje sentimenta prema bankarskom sektoru ili tržištu nekretnina (`banke`, `kredit`, `nekretnine`).
-
-- > **Tržište rada:** Praćenje rasprava o traženju posla, otkazima i pritiscima na plaće.
-
-- > **Regionalna analiza:** Korištenje geolokacijskih podataka za uvid u regionalne ekonomske nejednakosti.
-
-#### Kada II
+Pregled 20k medijskih objava o HNB pokazuje 
 
 #### Gdje 
+```{r load-data}
+# load only the pre-computed tables
+platform_summary        <- readRDS("./platform_summary.rds")
+proportions_summary     <- readRDS("./proportions_summary.rds")
+source_summary          <- readRDS("./source_summary.rds")
+top_sources_by_year     <- readRDS("./top_sources_by_year.rds")
 
-#### Što
+top_web_sources         <- readRDS("./top_web_sources.rds")
+top_youtube_sources     <- readRDS("./top_youtube_sources.rds")
+top_facebook_sources    <- readRDS("./top_facebook_sources.rds")
+
+web_actors              <- readRDS("./web_actors.rds")
+youtube_actors          <- readRDS("./youtube_actors.rds")
+facebook_actors         <- readRDS("./facebook_actors.rds")
+
+
+```
+
+
+```{r}
+
+platform_color_mapping <- c(
+  "web"       = "#003366",  # HNB Dark Blue
+  "facebook"  = "#5B9BD5",  # HNB Medium Blue
+  "comment"   = "#C00000",  # HNB Accent Red
+  "twitter"   = "#BF8F00",  # HNB Accent Gold
+  "forum"     = "#005F56",  # HNB Dark Green
+  "youtube"   = "#7F7F7F",  # HNB Medium Grey
+  "reddit"    = "#A0522D"
+)
+
+
+
+plot_volume <- platform_summary %>%
+  # No need for tolower() as your data is already lowercase
+  arrange(year, total_posts) %>%
+  mutate(SOURCE_TYPE_ordered = factor(SOURCE_TYPE, levels = unique(SOURCE_TYPE))) %>%
+  
+  # --- CORRECTED AES MAPPING ---
+  ggplot(aes(x = total_posts, y = SOURCE_TYPE_ordered, fill = SOURCE_TYPE_ordered)) +
+  
+  geom_col() +
+  geom_text(aes(label = comma(total_posts, accuracy = 1)), hjust = -0.1, size = 3, color = "black") +
+  facet_wrap(~year, scales = "free_y") +
+  scale_x_continuous(labels = label_number(suffix = " K", scale = 1e-3)) +
+  scale_fill_manual(values = platform_color_mapping) +
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 16),
+    panel.grid.major.y = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(
+    title = "Broj objava po platformama (2021-2023)",
+    subtitle = "",
+    x = "Ukupan broj objava (u tisućama)",
+    y = NULL, # Removed redundant y-axis title
+    caption = "Napomena: Stupci su sortirani po volumenu."
+  )
+
+print(plot_volume)
+
+```
+#### Gdje II
+
+```{r}
+# Now, the adjusted ggplot code
+plot_interactions <- platform_summary %>%
+  filter(total_interactions > 0) %>%
+  # ADDED: Clean data to ensure it matches the color map names
+  mutate(SOURCE_TYPE = tolower(trimws(SOURCE_TYPE))) %>%
+  arrange(year, total_interactions) %>%
+  mutate(SOURCE_TYPE_ordered = factor(SOURCE_TYPE, levels = unique(SOURCE_TYPE))) %>%
+  
+  # CORRECTED: Use the same ordered variable for both y and fill
+  ggplot(aes(x = total_interactions, y = SOURCE_TYPE_ordered, fill = SOURCE_TYPE_ordered)) +
+  
+  geom_col() +
+  geom_text(aes(label = comma(total_interactions, accuracy = 1)), hjust = -0.1, size = 3, color = "black") +
+  facet_wrap(~year, scales = "free_y") +
+  scale_x_continuous(labels = label_number(suffix = " M", scale = 1e-6)) +
+  
+  # CORRECTED: Use the correct color map variable
+  scale_fill_manual(values = platform_color_mapping) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(face = "bold", size = 16),
+    panel.grid.major.y = element_blank(),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(
+    title = "Ukupan broj interakcija na objave o HNB-u (2021–2023)",
+    x = "Interakcije (u milijunima)",
+    y = NULL, # Changed for a cleaner look
+    caption = "Napomena: Stupci su sortirani po interakcijama. Prikazane su samo platforme s >0 interakcija."
+  )
+
+print(plot_interactions)
+
+```
+
+#### Gdje III
+
+```{r}
+# Adjusted ggplot code for the reach plot
+plot_reach <- platform_summary %>%
+  # ADDED: Clean data to ensure it matches the color map names
+  mutate(SOURCE_TYPE = tolower(trimws(SOURCE_TYPE))) %>%
+  arrange(year, total_reach) %>%
+  mutate(
+    SOURCE_TYPE_ordered = factor(SOURCE_TYPE, levels = unique(SOURCE_TYPE))
+  ) %>%
+  
+  # CORRECTED: Use the same ordered variable for both y and fill
+  ggplot(aes(x = total_reach, y = SOURCE_TYPE_ordered, fill = SOURCE_TYPE_ordered)) +
+  
+  geom_col() +
+  geom_text(
+    aes(label = comma(total_reach, accuracy = 1)),
+    hjust = -0.1, size = 3, color = "black"
+  ) +
+  facet_wrap(~year, scales = "free_y") +
+  scale_x_continuous(
+    labels = label_number(suffix = " M", scale = 1e-6)
+  ) +
+  
+  # CORRECTED: Use the correct color map variable
+  scale_fill_manual(values = platform_color_mapping) +
+  
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position    = "none",
+    strip.text         = element_text(face = "bold", size = 16),
+    panel.grid.major.y = element_blank(),
+    axis.text.x        = element_text(angle = 45, hjust = 1)
+  ) +
+  labs(
+    title    = "Ukupan doseg po platformama (2021–2023)",
+    x        = "Doseg (u milijunima)",
+    y        = NULL, # Changed for a cleaner look
+    caption  = "Napomena: Stupci su sortirani po dosegu."
+  )
+
+print(plot_reach)
+```
+#### Važnost
+
+```{r}
+
+plot_share_posts <- proportions_summary %>%
+  mutate(SOURCE_TYPE = tolower(trimws(SOURCE_TYPE))) %>%
+  ggplot(aes(x = year, y = post_share, fill = SOURCE_TYPE)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = percent_format()) +
+  scale_x_continuous(breaks = c(2021, 2022, 2023)) +
+  scale_fill_manual(values = platform_color_mapping) +
+  theme_minimal(base_size = 14) +
+  labs(title = "Udio objava", x = "Godina", y = "Postotak", fill = "Platforma") +
+  
+  # --- ADDED: Move the legend to the right ---
+  theme(legend.position = "right")
+
+plot_share_interactions <- proportions_summary %>%
+  filter(total_interactions > 0) %>%
+  mutate(SOURCE_TYPE = tolower(trimws(SOURCE_TYPE))) %>%
+  ggplot(aes(x = year, y = interaction_share, fill = SOURCE_TYPE)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = percent_format()) +
+  scale_x_continuous(breaks = c(2021, 2022, 2023)) +
+  scale_fill_manual(values = platform_color_mapping, guide = "none") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Udio interakcija", x = "Godina", y = "Postotak")
+
+plot_share_reach <- proportions_summary %>%
+  filter(total_reach > 0) %>%
+  mutate(SOURCE_TYPE = tolower(trimws(SOURCE_TYPE))) %>%
+  ggplot(aes(x = year, y = reach_share, fill = SOURCE_TYPE)) +
+  geom_col(position = "fill") +
+  scale_y_continuous(labels = percent_format()) +
+  scale_x_continuous(breaks = c(2021, 2022, 2023)) +
+  scale_fill_manual(values = platform_color_mapping, guide = "none") +
+  theme_minimal(base_size = 14) +
+  labs(title = "Udio dosega", x = "Godina", y = "Postotak")
+
+# --- Combine the plots ---
+
+plot_combined_share <- (plot_share_posts + plot_share_interactions + plot_share_reach) +
+  plot_layout(guides = 'collect') & # Using '&' applies theme to all plots
+  theme(legend.position = "right") # This is a more robust way with patchwork
+
+plot_combined_share <- plot_combined_share +
+  plot_annotation(
+    title    = "Struktura digitalnog ekosustava (2021–2023)",
+    subtitle = "Usporedba udjela platformi u ukupnom broju objava, interakcija i dosega.",
+    caption  = "Web generira najviše sadržaja, ali YouTube i Facebook preuzimaju sve veći dio 'kolača' utjecaja."
+  )
+
+print(plot_combined_share)
+```
+
+#### Top20
+
+
+```{r plot-lollipops-interactions, fig.width=13, fig.height=10, dpi=500}
+create_top_source_plot <- function(data, platform_name, platform_color) {
+  data <- data %>% arrange(total_interactions) %>% mutate(FROM = factor(FROM, levels = FROM))
+  ggplot(data, aes(x = FROM, y = total_interactions)) +
+    geom_segment(aes(x = FROM, xend = FROM, y = 0, yend = total_interactions), color = "grey", linewidth = 0.5) +
+    geom_point(aes(size = total_posts), color = platform_color, alpha = 0.8) +
+    coord_flip() +
+    scale_y_continuous(labels = label_number(suffix = " K", scale = 1e-3)) +
+    scale_size_continuous(range = c(2, 10), name = "Broj objava") +
+    theme_light(base_size = 12) +
+    theme(
+      panel.grid.major.y = element_blank(), panel.border = element_blank(),
+      axis.ticks.y = element_blank(), legend.position = "bottom",
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    ) +
+    labs(title = platform_name, x = "", y = "Ukupne interakcije (u tisućama)")
+}
+
+plot_web <- create_top_source_plot(top_web_sources, "Web portali", "#003366")
+plot_youtube <- create_top_source_plot(top_youtube_sources, "YouTube kanali", "#7F7F7F")
+plot_facebook <- create_top_source_plot(top_facebook_sources, "Facebook stranice", "#5B9BD5")
+
+final_dashboard <- plot_web + plot_youtube + plot_facebook +
+  plot_annotation(
+    title = "Top 20 profila u digitalnom medijskom prostoru o HNB-u (2021-2023)",
+    subtitle = "Rangirano prema ukupnim interakcijama. Veličina točke predstavlja ukupan broj objava.",
+    caption = "Izvor: Analiza projekta 'Prikaz i analiza prisutnosti HNB-a u digitalnom medijskom prostoru'",
+    theme = theme(plot.title = element_text(size = 20, face = "bold"))
+  )
+print(final_dashboard)
+```
+
+#### Utjecaj
+
+```{r,  fig.width=13, fig.height=10, dpi=500}
+create_actor_map_plot <- function(data, platform_name, platform_color) {
+  if(nrow(data) < 2) { return(ggplot() + labs(title = paste("Nema dovoljno podataka za", platform_name)) + theme_void()) }
+  
+  median_interactions <- median(data$total_interactions, na.rm = TRUE)
+  median_reach <- median(data$total_reach, na.rm = TRUE)
+
+  ggplot(data, aes(x = total_interactions, y = total_reach)) +
+    geom_vline(xintercept = median_interactions, linetype = "dashed", color = "grey70") +
+    geom_hline(yintercept = median_reach, linetype = "dashed", color = "grey70") +
+    geom_point(aes(size = total_posts), color = platform_color, alpha = 0.7) +
+    geom_text_repel(aes(label = FROM), size = 3, max.overlaps = 15) +
+    scale_x_log10(labels = label_number(big.mark = ".", suffix = " K", scale = 1e-3)) +
+    scale_y_log10(labels = label_number(big.mark = ".", suffix = " M", scale = 1e-6)) +
+    scale_size_continuous(range = c(2, 12), name = "Broj objava") +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom") +
+    labs(
+      title = platform_name, x = "Ukupne interakcije (Log)", y = "Ukupan doseg (Log)"
+    )
+}
+
+plot_map_web <- create_actor_map_plot(web_actors, "Web Portali", "#003366")
+plot_map_youtube <- create_actor_map_plot(youtube_actors, "YouTube Kanali", "#7F7F7F")
+plot_map_facebook <- create_actor_map_plot(facebook_actors, "Facebook Stranice", "#5B9BD5")
+
+final_map_dashboard <- plot_map_web + plot_map_youtube + plot_map_facebook +
+  plot_annotation(
+    title = "Mapa utjecaja najvažnijih profila u raspravama o HNB-u (2021-2023)",
+    subtitle = "Usporedba dosega i angažmana. Veličina točke predstavlja produktivnost (broj objava).",
+    caption = "Izvor: Analiza projekta 'Prikaz i analiza prisutnosti HNB-a u digitalnom medijskom prostoru' | Osi su na logaritamskoj skali.",
+    theme = theme(plot.title = element_text(size = 20, face = "bold"))
+  ) & theme(plot.background = element_rect(fill = "white", color = NA))
+
+print(final_map_dashboard)
+```
+
+
+
+#### Atmosfera
+
+
+```{r}
+sentiment_counts_gold <- nlp_results_df %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  # Filtriramo neutralne riječi jer nam ne trebaju za ovu formulu
+  filter(sentiment_value != 0) %>% 
+  # Brojimo koliko je pozitivnih (1) i negativnih (-1) riječi
+  count(doc_id, sentiment_value) %>%
+  # Pretvaramo u široki format da imamo stupce za 'pozitivne' i 'negativne'
+  pivot_wider(names_from = sentiment_value, values_from = n, values_fill = 0)
+
+# --- DEFENZIVNI BLOK KODA ---
+# Provjeravamo postoji li stupac '1' (pozitivni). Ako ne, dodajemo ga s nulama.
+if (!"1" %in% names(sentiment_counts_gold)) {
+  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`1` = 0) }
+# Provjeravamo postoji li stupac '-1' (negativni). Ako ne, dodajemo ga s nulama.
+if (!"-1" %in% names(sentiment_counts_gold)) {
+  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`-1` = 0) }
+# --- KRAJ DEFENZIVNOG BLOKA ---
+
+# Sada sigurno preimenujemo stupce jer znamo da postoje
+sentiment_counts_gold <- sentiment_counts_gold %>%
+  rename(
+    positive_words = `1`,
+    negative_words = `-1` )
+
+
+epsilon <- 1e-6 
+
+document_sentiments_gold <- sentiment_counts_gold %>%
+  mutate(
+    sentiment_score_gold = (positive_words - negative_words) / (positive_words + negative_words + epsilon)
+  ) %>%
+  select(doc_id, sentiment_score_gold)
+
+# Sloj 2: Dominantni Psihološki Proces (NRC)
+document_emotions <- nlp_results_df %>%
+  inner_join(nrc_lexicon_long, by = c("lemma" = "word")) %>%
+  count(doc_id, emotion) %>%
+  group_by(doc_id) %>%
+  slice_max(order_by = n, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(doc_id, dominant_emotion = emotion)
+
+# Spajanje svega u jedan dataframe
+dta_atmosphere <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(document_emotions, by = "doc_id") %>%
+  mutate(
+    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion)
+  )
+
+# Priprema podataka za vizualizaciju
+heatmap_data <- dta_atmosphere %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic, dominant_emotion) %>%
+  summarise(avg_sentiment = mean(sentiment_score),
+            n_articles = n()) %>%
+  ungroup() %>%
+  # Prikazujemo samo emocije s dovoljno članaka za analizu
+  filter(n_articles > 3)
+```
+
+```{r}
+ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_sentiment)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = round(avg_sentiment, 2)), size = 3, color = "black") +
+  scale_fill_gradient2(low = "firebrick", mid = "white", high = "steelblue", midpoint = 0, name = "Prosj. Sentiment") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Matrica atmosfere: Kako psihološki okvir utječe na tonalitet teme",
+    subtitle = "Boja ćelije predstavlja prosječni sentiment (CroSentilex) unutar svake kombinacije teme i dominantne emocije (NRC)",
+    x = "Dominantni psihološki proces (NRC)",
+    y = "Dominantna tema"
+  )
+```
+
+
+
+#### Kada 
+
+#### Događaji
+
+
+```{r}
+
+
+lemmatized_words_with_freq <- nlp_results_df %>%
+  count(doc_id, lemma, name = "word_frequency")
+
+# --- 3.2: Izračun Sentiment Score-a (CroSentilex-Gold) ---
+sentiment_counts_gold <- lemmatized_words_with_freq %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  filter(sentiment_value != 0) %>%
+  count(doc_id, sentiment_value) %>%
+  pivot_wider(names_from = sentiment_value, values_from = n, values_fill = 0)
+if (!"1" %in% names(sentiment_counts_gold)) { sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`1` = 0) }
+if (!"-1" %in% names(sentiment_counts_gold)) { sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`-1` = 0) }
+document_sentiments_gold <- sentiment_counts_gold %>%
+  rename(positive_words = `1`, negative_words = `-1`) %>%
+  mutate(sentiment_score_gold = (positive_words - negative_words) / (positive_words + negative_words + 1e-6)) %>%
+  select(doc_id, sentiment_score_gold)
+
+# --- 3.3: Izračun Dominantne Emocije (NRC) ---
+document_emotions <- lemmatized_words_with_freq %>%
+  inner_join(nrc_lexicon_long, by = c("lemma" = "word")) %>%
+  group_by(doc_id, emotion) %>%
+  summarise(total_freq = sum(word_frequency), .groups="drop") %>%
+  group_by(doc_id) %>%
+  slice_max(order_by = total_freq, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(doc_id, dominant_emotion = emotion)
+
+# --- 3.4: Izračun Indeksa Konflikta (CLI i RCI) za financijske teme ---
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c("kriza", "kolaps", "neuspjeh", "pogreška", "kritika", "neodgovorno", "rizično", "zabrinjavajuće", "nestabilno", "problematično", "kontroverzno", "sporno", "sumnjivo", "loš", "katastrofal", "kaotičan", "recesija", "inflacija", "deflacija", "bankrot")
+))
+cli_scores <- lemmatized_words_with_freq %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    total_words = sum(word_frequency),
+    conflict_words = sum(word_frequency[is_conflict])
+  ) %>%
+  mutate(cli = (conflict_words / total_words) * 1000) %>% ungroup()
+
+dta_temp <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(document_emotions, by = "doc_id") %>%
+  left_join(cli_scores %>% select(doc_id, cli), by = "doc_id") %>%
+  mutate(
+    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion),
+    cli = ifelse(is.na(cli), 0, cli)
+  )
+
+avg_cli_media <- dta_temp %>% group_by(FROM) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_temp %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_final <- dta_temp %>%
+  left_join(avg_cli_media, by = "FROM") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+```
+
+
+
+```{r anomaly-detection, eval= T, message=FALSE, warning=FALSE}
+# --- KOD ZA DETEKCIJU ANOMALIJA (POBOLJŠANA VERZIJA) ---
+daily_summary <- dta_final %>%
+  mutate(date = as.Date(DATE)) %>%
+  group_by(date) %>%
+  summarise(
+    n_articles = n(),
+    avg_cli = mean(cli, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Računamo pragove (99-i percentil)
+volume_threshold <- quantile(daily_summary$n_articles, 0.99)
+cli_threshold <- quantile(daily_summary$avg_cli, 0.99)
+
+# Identificiramo "potrese"
+spikes_detected <- daily_summary %>%
+  mutate(
+    is_volume_spike = n_articles > volume_threshold,
+    is_cli_spike = avg_cli > cli_threshold
+  )
+
+# Vizualizacija
+p_volume <- ggplot(spikes_detected, aes(x = date, y = n_articles)) +
+  geom_line(color = "grey") +
+  geom_point(data = filter(spikes_detected, is_volume_spike), color = "red", size = 3) +
+  geom_hline(yintercept = volume_threshold, linetype="dashed", color="red") +
+  theme_minimal() +
+  labs(title = "Ekstremni volumen objava", y = "Broj članaka dnevno", x = "")
+
+p_cli <- ggplot(spikes_detected, aes(x = date, y = avg_cli)) +
+  geom_line(color = "grey") +
+  geom_point(data = filter(spikes_detected, is_cli_spike), color = "red", size = 3) +
+  geom_hline(yintercept = cli_threshold, linetype="dashed", color="red") +
+  theme_minimal() +
+  labs(title = "Ekstremni intenzitet konflikta", y = "Prosječni CLI dnevno", x = "Datum")
+
+#p_volume / p_cli
+```
+
+```{r standardized-anomaly-detection}
+# --- KOD ZA STANDARDIZIRANU DETEKCIJU ANOMALIJA ---
+
+# Agregiramo podatke po danu
+daily_summary <- dta_final %>%
+  mutate(date = as.Date(DATE),
+         year = year(date)) %>% # Dodajemo godinu za godišnju standardizaciju
+  group_by(date, year) %>%
+  summarise(
+    n_articles = n(),
+    avg_cli = mean(cli, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Standardiziramo vrijednosti (računamo Z-score) unutar svake godine
+standardized_summary <- daily_summary %>%
+  group_by(year) %>%
+  mutate(
+    # Z-score = (vrijednost - prosjek) / standardna devijacija
+    z_score_volume = (n_articles - mean(n_articles)) / sd(n_articles),
+    z_score_cli = (avg_cli - mean(avg_cli)) / sd(avg_cli)
+  ) %>%
+  ungroup()
+
+# Definiramo prag za "šiljak" (npr. 3 standardne devijacije)
+spike_threshold_z <- 3
+
+# Identificiramo "potrese"
+spikes_detected_z <- standardized_summary %>%
+  mutate(
+    is_volume_spike = z_score_volume > spike_threshold_z,
+    is_cli_spike = z_score_cli > spike_threshold_z
+  )
+
+# --- ISPIS DATUMA S ANOMALIJAMA ---
+volume_spike_dates <- spikes_detected_z %>%
+  filter(is_volume_spike) %>%
+  select(date, n_articles, z_score_volume) %>%
+  arrange(desc(z_score_volume))
+
+cli_spike_dates <- spikes_detected_z %>%
+  filter(is_cli_spike) %>%
+  select(date, avg_cli, z_score_cli) %>%
+  arrange(desc(z_score_cli))
+
+# # (Ovaj dio ispod će ispisati tablice direktno u vaš HTML dokument)
+# cat("### Dani s Ekstremnim Volumom Objava\n\n")
+# knitr::kable(volume_spike_dates, caption = "Top datumi rangirani po Z-scoreu volumena.")
+# 
+# cat("\n### Dani s Ekstremnim Intenzitetom Konflikta\n\n")
+# knitr::kable(cli_spike_dates, caption = "Top datumi rangirani po Z-scoreu konflikta.")
+
+
+# --- VIZUALIZACIJA STANDARDIZIRANIH VRIJEDNOSTI ---
+p_volume_z <- ggplot(spikes_detected_z, aes(x = date, y = z_score_volume)) +
+  geom_line(color = "grey") +
+  geom_point(data = filter(spikes_detected_z, is_volume_spike), color = "red", size = 3) +
+  geom_hline(yintercept = spike_threshold_z, linetype = "dashed", color = "red") +
+  theme_minimal() +
+  labs(
+    title = "Anomalije u volumenu objava (Standardizirano)",
+    y = "Odstupanje od prosjeka (u st. dev.)",
+    x = ""
+  )
+
+p_cli_z <- ggplot(spikes_detected_z, aes(x = date, y = z_score_cli)) +
+  geom_line(color = "grey") +
+  geom_point(data = filter(spikes_detected_z, is_cli_spike), color = "red", size = 3) +
+  geom_hline(yintercept = spike_threshold_z, linetype = "dashed", color = "red") +
+  theme_minimal() +
+  labs(
+    title = "Anomalije u intenzitetu konflikta (Standardizirano)",
+    y = "Odstupanje od prosjeka (u st. dev.)",
+    x = "Datum"
+  )
+
+
+```
+
+```{r}
+p_volume_z
+```
+
+
+
+```{r}
+p_cli_z
+```
 
 :::
 
@@ -1247,7 +2008,8 @@ inflacija, nowcasting, komunikacija sa ne-stručnjacima, komunikacija kao transm
 
 #### Inflacija
 
-Metodologija je fleksibilna i može se proširiti na praćenje različitih sektora:
+
+#### Ideje 
 
 - > **Financijska stabilnost:** Praćenje sentimenta prema bankarskom sektoru ili tržištu nekretnina (`banke`, `kredit`, `nekretnine`).
 
@@ -1255,14 +2017,10 @@ Metodologija je fleksibilna i može se proširiti na praćenje različitih sekto
 
 - > **Regionalna analiza:** Korištenje geolokacijskih podataka za uvid u regionalne ekonomske nejednakosti.
 
-#### Indeks konflikta
+
 
 
 :::
-
-
-
-
 
 ---
 
