@@ -74,18 +74,18 @@ platform_color_mapping <- c(
 
 ## Kontekst
 
-- > **Digitalni medijski prostor u RH:** [Definiraju ga](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/01-kontekst.html) politička ekonomija digitalnog klika, prijeđeni put i algoritamska arhitektura javnog diskursa.
+- > **Digitalni medijski prostor u RH:** [Definiraju](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/01-kontekst.html) ga politička ekonomija digitalnog klika, prijeđeni put i algoritamska arhitektura javnog diskursa.
 
-- > **Komunikacija središnjih banaka:** Značajna promjena od tajnovitosti do transparentnosti (1980e do 2000e), preko komunikacijske revolucije (1990e do ranih 2000ih), do aktivnog angažmana u medijskom prostoru.
+- > **Komunikacija središnjih banaka:** Značajna promjena od [tajnovitosti do transparentnosti](https://www.youtube.com/watch?v=u453NZsw74w&list=PLt9jC4Ylzr6CMEcksfFf_DX7nw6Ox_YgH) (1980e do 2000e), preko [komunikacijske revolucije](https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp898.pdf) (1990e do ranih 2000ih), do [aktivnog angažmana](https://research.vu.nl/ws/portalfiles/portal/362043989/blinder-et-al-2024-central-bank-communication-with-the-general-public-promise-or-false-hope.pdf) u medijskom prostoru.
 
-- > **Ekonomska literatura:** Računalne društvene znanosti i korištenje velikih podataka su standardni u sve većem broju primjena u makroekonomiji i financijama.
+- > **Ekonomska literatura:** Računalne društvene znanosti i korištenje velikih podataka su standardni u sve većem broju primjena  u makroekonomiji i financijama, posebno [tekstualnih podataka](https://web.stanford.edu/~gentzkow/research/text-as-data.pdf). To je prihvaćeno od strane [središnjih banaka](https://www.economicsobservatory.com/can-textual-analysis-be-used-track-economy-during-pandemic) ([ECB](https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp3047~cb0f0cf37f.en.pdf), Fed, [BoE](https://www.bankofengland.co.uk/-/media/boe/files/ccbs/resources/text-mining-for-central-banks.pdf), [BIS](https://www.bis.org/review/r250224d.pdf)).
 
 ---
 
 ## Digitalni medijski podatci
 
 <br><br>
-Alternativni podatci nisu zamjena nego nadopuna!
+[Alternativni](https://library.oapen.org/viewer/web/viewer.html?file=/bitstream/handle/20.500.12657/49505/9783030668914.pdf?sequence=1&isAllowed=y) podatci nisu zamjena nego nadopuna!
 <br><br>
 
 
@@ -111,7 +111,7 @@ Alternativni podatci nisu zamjena nego nadopuna!
 
 ## Digitalni medijski prostor RH
 
-Najvažniji dio medijskog prostora u Hrvatskoj je digitalni medijski prostor.
+[Digitalni medijski prostor](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/02-metodologija.html) sve je važniji dio [medijskog prostora u Hrvatskoj](https://reutersinstitute.politics.ox.ac.uk/digital-news-report/2025/croatia).
 
 ::: {.panel-tabset}
 #### Koncept
@@ -122,7 +122,9 @@ Podatci uključuju:
 <br><br>
 -  uključuju sve javne objave (N~21mil) 
 <br><br>
--  platforme:  web,fb,ig,x,yt,reddit,forum,komentari
+-  web,fb,ig,x,yt,reddit,forum,komentari
+<br><br>
+-  49 karakteristika po objavi (FULL_TEXT,TITLE, DATE, SOURCE_TYPE, INTERACTIONS, REACH, ENGAGEMENT_RATE, VIRALITY, LIKE_COUNT, COMMENT_COUNT, SHARE_COUNT, ...)
 
 #### Objave
 ```{r plot1, echo=FALSE, message=FALSE, warning=FALSE}
@@ -2004,20 +2006,385 @@ p_cli_z
 #### Koncept
 
 Literatura o komunikaciji središnjih banaka je značajna i vrlo aktualna. Nekoliko  je istraživačkih pravaca koji se ističu:
-inflacija, nowcasting, komunikacija sa ne-stručnjacima, komunikacija kao transmisijski kanal
+[inflacija](https://www.ecb.europa.eu/press/conferences/ecbforum/shared/pdf/2025/EFCB_2025_Trebbi_Paper.pdf), nowcasting, [ekonomska politika](https://www.policyuncertainty.com/media/EPU_BBD_Mar2016.pdf), odnosno [nesigurnost](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf), komunikacija sa ne-stručnjacima, komunikacija kao transmisijski kanal
 
-#### Inflacija
+#### Inflacija I
+[i](https://archiv.ub.uni-heidelberg.de/volltextserver/34992/7/Arndt_dp748_2024.pdf)
 
+[ii](https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp3047~cb0f0cf37f.en.pdf)
 
-#### Ideje 
-
-- > **Financijska stabilnost:** Praćenje sentimenta prema bankarskom sektoru ili tržištu nekretnina (`banke`, `kredit`, `nekretnine`).
-
-- > **Tržište rada:** Praćenje rasprava o traženju posla, otkazima i pritiscima na plaće.
-
-- > **Regionalna analiza:** Korištenje geolokacijskih podataka za uvid u regionalne ekonomske nejednakosti.
+[iii](https://www.rba.gov.au/publications/bulletin/2024/jan/inflation-expectations-and-economic-literacy.html)
 
 
+```{r}
+# --- 0. SETUP: Load Libraries and Connect to Database ---
+library(duckdb)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(scales)
+library(tidyr)
+library(eurostat)
+
+# IMPORTANT: Adjust the path to your .duckdb file!
+duckdb_file_path <- "C:/Users/lukas/Determbaza/DetermDB/determDB.duckdb" # <--- ADJUST THIS!
+table_name <- "media_data"
+
+# Establish connection to the database
+con <- dbConnect(duckdb::duckdb(), dbdir = duckdb_file_path, read_only = TRUE)
+dbExecute(con, "SET memory_limit='16GB';")
+```
+
+
+```{r}
+# --- 1. DOWNLOAD EUROSTAT INFLATION DATA ---
+cat("Downloading inflation data from Eurostat...\n")
+hicp_data <- get_eurostat(id = "prc_hicp_midx", filters = list(geo = "HR", coicop = "CP00", unit = "I15"))
+inflation_data <- hicp_data %>%
+  arrange(time) %>%
+  mutate(inflation_rate = ((values / lag(values, 12)) - 1) * 100) %>%
+  filter(!is.na(inflation_rate))
+
+# --- 2. RETRIEVE AND PROCESS MEDIA DATA (OVERALL) ---
+cat("Aggregating overall media data...\n")
+# Query for total posts and total inflation mentions per month
+sql_totals <- "SELECT STRFTIME(DATETIME, '%Y-%m') AS year_month, COUNT(*) AS total_posts FROM media_data GROUP BY year_month"
+inflation_trends <- dbGetQuery(con, sql_totals)
+
+# Query for mentions by location (title vs. text)
+sql_location <- "
+  SELECT STRFTIME(DATETIME, '%Y-%m') AS year_month,
+    SUM(CASE WHEN LOWER(TITLE) LIKE '%inflacij%' THEN 1 ELSE 0 END) AS in_title,
+    SUM(CASE WHEN LOWER(TITLE) NOT LIKE '%inflacij%' AND LOWER(FULL_TEXT) LIKE '%inflacij%' THEN 1 ELSE 0 END) AS in_text_only
+  FROM media_data GROUP BY year_month ORDER BY year_month;"
+inflation_location_counts <- dbGetQuery(con, sql_location)
+
+# --- 3. RETRIEVE AND PROCESS MEDIA DATA (BY SOURCE TYPE) ---
+cat("Aggregating media data by source type...\n")
+# Query for total posts per month AND per source type
+sql_totals_by_source <- "
+  SELECT STRFTIME(DATETIME, '%Y-%m') AS year_month, SOURCE_TYPE, COUNT(*) AS total_posts
+  FROM media_data GROUP BY year_month, SOURCE_TYPE ORDER BY year_month, SOURCE_TYPE;"
+inflation_trends_by_source <- dbGetQuery(con, sql_totals_by_source)
+
+# Query for mentions by location per month AND per source type
+sql_location_by_source <- "
+  SELECT STRFTIME(DATETIME, '%Y-%m') AS year_month, SOURCE_TYPE,
+    SUM(CASE WHEN LOWER(TITLE) LIKE '%inflacij%' THEN 1 ELSE 0 END) AS in_title,
+    SUM(CASE WHEN LOWER(TITLE) NOT LIKE '%inflacij%' AND LOWER(FULL_TEXT) LIKE '%inflacij%' THEN 1 ELSE 0 END) AS in_text_only
+  FROM media_data GROUP BY year_month, SOURCE_TYPE ORDER BY year_month, SOURCE_TYPE;"
+inflation_location_by_source <- dbGetQuery(con, sql_location_by_source)
+
+# All data is retrieved, we can now close the connection
+dbDisconnect(con, shutdown = TRUE)
+cat("Database connection closed.\n")
+
+
+# --- 4. CREATE FINAL ANALYSIS DATASETS ---
+# Dataset 1: Absolute counts for the first plot
+inflation_location_long <- inflation_location_counts %>%
+  mutate(month_date = ymd(paste0(year_month, "-01"))) %>%
+  pivot_longer(cols = c("in_title", "in_text_only"), names_to = "location", values_to = "count") %>%
+  mutate(location = factor(location, levels = c("in_text_only", "in_title"), labels = c("Samo u tekstu", "U naslovu")))
+
+# Dataset 2: Relative frequency for the second plot
+relative_data <- left_join(inflation_location_long, inflation_trends, by = "year_month") %>%
+  mutate(relative_frequency = count / total_posts) %>%
+  filter(!is.na(relative_frequency))
+
+# Dataset 3: Relative frequency by source type for the third plot
+relative_data_by_source <- left_join(
+    inflation_location_by_source %>% pivot_longer(cols = c("in_title", "in_text_only"), names_to = "location", values_to = "count"),
+    inflation_trends_by_source,
+    by = c("year_month", "SOURCE_TYPE")
+  ) %>%
+  mutate(
+    relative_frequency = count / total_posts,
+    month_date = ymd(paste0(year_month, "-01")),
+    location = factor(location, levels = c("in_text_only", "in_title"), labels = c("Samo u tekstu", "U naslovu"))
+  ) %>%
+  filter(!is.na(relative_frequency) & total_posts > 50) # Filter out platforms with very low activity
+```
+#### INFLACIJA I
+
+```{r}
+# -- Filter and Scale Data for this specific plot --
+media_absolute_filtered <- inflation_location_long %>% filter(year(month_date) >= 2021)
+last_media_date <- max(media_absolute_filtered$month_date)
+inflation_rate_filtered <- inflation_data %>% filter(year(time) >= 2021 & time <= last_media_date)
+
+# This calculation is simplified, as the scaling factor was slightly incorrect before
+max_count <- media_absolute_filtered %>% group_by(month_date) %>% summarise(total = sum(count)) %>% pull(total) %>% max()
+scaling_factor <- max_count / max(inflation_rate_filtered$inflation_rate)
+
+# -- Create Plot (Corrected Structure) --
+# Aesthetics are now defined inside each geom layer
+ggplot() +
+  # Layer 1: Bar chart for media mentions
+  geom_col(
+    data = media_absolute_filtered,
+    aes(x = month_date, y = count, fill = location)
+  ) +
+  # Layer 2: Line chart for official inflation rate
+  geom_line(
+    data = inflation_rate_filtered,
+    aes(x = time, y = inflation_rate * scaling_factor, color = "Službena stopa inflacije"),
+    linewidth = 1.5
+  ) +
+  scale_y_continuous(
+    name = "Broj medijskih objava",
+    labels = comma,
+    sec.axis = sec_axis(~ . / scaling_factor, name = "Godišnja stopa inflacije (%)", labels = function(x) paste0(round(x), "%"))
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y", expand = c(0.01, 0.01)) +
+  scale_fill_manual(name = "Spominjanje u objavi:", values = c("U naslovu" = "#C00000", "Samo u tekstu" = "#5B9BD5")) +
+  scale_color_manual(name = NULL, values = c("Službena stopa inflacije" = "#003366")) +
+  labs(
+    title = "Medijsko praćenje inflacije vs. službena stopa inflacije",
+    subtitle = "Usporedba apsolutnog broja medijskih objava i stvarne stope inflacije",
+    x = "Godina", y = "Broj medijskih objava"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
+
+#### INFLACIJA II
+
+```{r}
+# -- Filter and Scale Data for this specific plot --
+media_relative_filtered <- relative_data %>% filter(year(month_date) >= 2021)
+last_media_date <- max(media_relative_filtered$month_date)
+inflation_rate_filtered <- inflation_data %>% filter(year(time) >= 2021 & time <= last_media_date)
+
+max_rel_freq <- media_relative_filtered %>% group_by(month_date) %>% summarise(total = sum(relative_frequency)) %>% pull(total) %>% max()
+scaling_factor <- max_rel_freq / max(inflation_rate_filtered$inflation_rate)
+
+# -- Create Plot (Corrected Structure) --
+ggplot() +
+  # Layer 1: Bar chart for relative mentions
+  geom_col(
+    data = media_relative_filtered,
+    aes(x = month_date, y = relative_frequency, fill = location)
+  ) +
+  # Layer 2: Line chart for official inflation rate
+  geom_line(
+    data = inflation_rate_filtered,
+    aes(x = time, y = inflation_rate * scaling_factor, color = "Službena stopa inflacije"),
+    linewidth = 1.5
+  ) +
+  scale_y_continuous(
+    name = "Udio objava o inflaciji",
+    labels = percent_format(accuracy = 1),
+    sec.axis = sec_axis(~ . / scaling_factor, name = "Godišnja stopa inflacije (%)", labels = function(x) paste0(round(x), "%"))
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y", expand = c(0.01, 0.01)) +
+  scale_fill_manual(name = "Spominjanje u objavi:", values = c("U naslovu" = "#C00000", "Samo u tekstu" = "#5B9BD5")) +
+  scale_color_manual(name = NULL, values = c("Službena stopa inflacije" = "#003366")) +
+  labs(
+    title = "Relativna učestalost praćenja inflacije vs. službena stopa inflacije",
+    subtitle = "Usporedba udjela medijskih objava o inflaciji i stvarne stope inflacije",
+    x = "Godina", y = "Udio objava o inflaciji"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
+
+#### INFLACIJA III
+
+```{r}
+# -- Filter and Scale Data for this specific plot --
+media_faceted_filtered <- relative_data_by_source %>% filter(year(month_date) >= 2021)
+last_media_date <- max(media_faceted_filtered$month_date)
+inflation_rate_filtered <- inflation_data %>% filter(year(time) >= 2021 & time <= last_media_date)
+
+max_rel_freq_faceted <- media_faceted_filtered %>% group_by(month_date, SOURCE_TYPE) %>% summarise(total = sum(relative_frequency), .groups = 'drop') %>% pull(total) %>% max()
+scaling_factor <- max_rel_freq_faceted / max(inflation_rate_filtered$inflation_rate)
+
+# -- Create Plot (Corrected Structure) --
+ggplot() +
+  # Layer 1: Bar chart for faceted relative mentions
+  geom_col(
+    data = media_faceted_filtered,
+    aes(x = month_date, y = relative_frequency, fill = location)
+  ) +
+  # Layer 2: Line chart for official inflation rate
+  geom_line(
+    data = inflation_rate_filtered,
+    aes(x = time, y = inflation_rate * scaling_factor, color = "Službena stopa inflacije"),
+    linewidth = 1.2
+  ) +
+  facet_wrap(~ SOURCE_TYPE, scales = "free_y", ncol = 2) +
+  scale_y_continuous(
+    name = "Udio objava o inflaciji",
+    labels = percent_format(accuracy = 1),
+    sec.axis = sec_axis(~ . / scaling_factor, name = "Godišnja stopa inflacije (%)", labels = function(x) paste0(round(x), "%"))
+  ) +
+  scale_x_date(date_breaks = "1 year", date_labels = "%Y", expand = c(0.01, 0.01)) +
+  scale_fill_manual(name = "Spominjanje u medijima:", values = c("U naslovu" = "#C00000", "Samo u tekstu" = "#5B9BD5")) +
+  scale_color_manual(name = NULL, values = c("Službena stopa inflacije" = "#003366")) +
+  labs(
+    title = "Relativna učestalost praćenja inflacije po tipu platforme",
+    subtitle = "Usporedba udjela objava o inflaciji unutar svake platforme i službene stope inflacije",
+    x = "Godina"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold", size = 11)
+  )
+```
+
+
+
+
+
+
+#### Nesigurnost 
+
+[i](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf)
+
+
+```{r}
+
+
+library(duckdb)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(scales)
+library(tidyr)
+library(eurostat)
+
+# IMPORTANT: Adjust the path to your .duckdb file!
+duckdb_file_path <- "C:/Users/lukas/Determbaza/DetermDB/determDB.duckdb" # <--- ADJUST THIS!
+table_name <- "media_data"
+
+# Establish connection to the database
+con <- dbConnect(duckdb::duckdb(), dbdir = duckdb_file_path, read_only = TRUE)
+dbExecute(con, "SET memory_limit='16GB';")
+
+
+
+
+# --- 1. SETUP: Define Keyword Dictionaries ---
+# These lists are based on the provided table and use word stems for broader matching.
+economy_terms <- c(
+  "ekonom", "gospodarstv", "financij", "proračun", "bdp",
+  "bruto domaći proizvod", "poduzeć", "tvrtk", "tržišt",
+  "dionic", "kamatn", "stop"
+)
+
+policy_terms <- c(
+  "politik", "vlada", " sabor", "ministarstv", "regulativ", "zakon",
+  "uredb", "hnb", "narodna banka", "fina", "porez", "carin",
+  "deficit", "javni dug"
+)
+
+uncertainty_terms <- c(
+  "nesigurn", "neizvjesn", "rizik", "prijetnj", "nestabiln",
+  "neodređen", "dvojb", "zabrinut"
+)
+
+
+# --- 2. DYNAMIC SQL QUERY CONSTRUCTION ---
+# This approach programmatically builds the complex search conditions,
+# which is much more robust and readable than a single, massive SQL string.
+
+# We'll search a concatenated and lowercased version of TITLE and FULL_TEXT
+search_column <- "LOWER(TITLE || ' ' || FULL_TEXT)"
+
+# Function to create a SQL 'OR' chain for a list of terms
+create_sql_condition <- function(terms, column) {
+  conditions <- paste0(sprintf("%s LIKE '%%%s%%'", column, terms), collapse = " OR ")
+  return(paste0("(", conditions, ")"))
+}
+
+# Create the condition for each category
+e_condition <- create_sql_condition(economy_terms, search_column)
+p_condition <- create_sql_condition(policy_terms, search_column)
+u_condition <- create_sql_condition(uncertainty_terms, search_column)
+
+
+# --- 3. DATA RETRIEVAL ---
+# This query counts both the total number of web articles and the number of articles
+# matching all three (E, P, and U) criteria, aggregated by month.
+sql_query_epu <- sprintf("
+  SELECT
+    STRFTIME(DATETIME, '%%Y-%%m') AS year_month,
+    COUNT(*) AS total_articles,
+    SUM(CASE
+          WHEN (%s) AND (%s) AND (%s)
+          THEN 1
+          ELSE 0
+        END) AS epu_articles
+  FROM %s
+  WHERE SOURCE_TYPE = 'web'
+  GROUP BY year_month
+  ORDER BY year_month;
+", e_condition, p_condition, u_condition, table_name)
+
+cat("Executing EPU query... This may take some time depending on database size.\n")
+epu_counts <- dbGetQuery(con, sql_query_epu)
+cat("Data successfully retrieved.\n")
+
+
+# --- 4. INDEX CALCULATION ---
+# This section follows the Baker, Bloom, and Davis methodology for scaling and standardization.
+epu_index_data <- epu_counts %>%
+  # Ensure there are no months with zero total articles to avoid division by zero
+  filter(total_articles > 0) %>%
+  mutate(
+    # Step 1: Scale the monthly EPU count by the total number of articles that month
+    scaled_freq = epu_articles / total_articles,
+    
+    # Step 2: Standardize the resulting series to have a mean of 100
+    # This makes the index easily comparable over time.
+    epu_index = (scaled_freq / mean(scaled_freq, na.rm = TRUE)) * 100,
+    
+    # Create a date column for plotting
+    month_date = ymd(paste0(year_month, "-01"))
+  ) %>%
+  # Filter to the main period of analysis for a stable index
+  filter(year(month_date) >= 2021 & year(month_date) <= 2024)
+
+cat("EPU Index calculated successfully.\n")
+
+
+# --- 5. VISUALIZATION ---
+epu_index_filtered <- epu_index_data %>%
+  filter(month_date <= ymd("2023-12-31"))
+
+# --- Create the Plot ---
+ggplot(epu_index_filtered, aes(x = month_date, y = epu_index)) +
+  geom_line(color = "#003366", linewidth = 1.2) +
+  geom_hline(yintercept = 100, linetype = "dashed", color = "#C00000") +
+  labs(
+    title = "Indeks ekonomske i političke nesigurnosti (EPU)",
+    subtitle = "Podaci za razdoblje 2021. - siječanj 2024.",
+    x = "Godina",
+    y = "Vrijednost EPU indeksa (Prosjek = 100)"
+  ) +
+  # Adjust x-axis for a multi-year view
+  scale_x_date(
+    date_breaks = "6 months",
+    date_labels = "%b %Y" # e.g., "Sij 2024"
+  ) +
+  theme_minimal(base_family = "sans") +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    plot.subtitle = element_text(size = 12, color = "gray30"),
+    axis.text.x = element_text(angle = 45, hjust = 1) # Angle labels for better fit
+  )
+
+```
+
+
+
+#### Financijska stabilnost
+
+https://www.rba.gov.au/publications/bulletin/2024/jan/inflation-expectations-and-economic-literacy.html
 
 
 :::
