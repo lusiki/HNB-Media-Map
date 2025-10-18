@@ -2403,28 +2403,490 @@ ggplot(epu_index_filtered, aes(x = month_date, y = epu_index)) +
 
 ## Prijedlog projekta
 
-Naš prijedlog je fokusiran, 6-mjesečni pilot za dokazivanje vrijednosti ovog pristupa.
+::: {.panel-tabset}
+#### Koncept
 
--   **Cilj:** Razviti i testirati prototip indeksa sentimenta inflacije u stvarnom vremenu za Hrvatsku.
+Presscut podatci za 08/2025; 190 objva i 15 karakteristika.
 
--   **Opseg:**
-    -   *Izvori podataka:* 2-3 glavna hrvatska news portala i Google Trends.
-    -   *Vremenski okvir:* Povijesna analiza (zadnjih 5 godina) i praćenje uživo.
-    -   *Validacija:* Usporedba indeksa s HNB-ovim anketama potrošača i službenim HICP podacima.
+#### Top platforme 
 
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(scales)
+library(forcats)
+
+# Postavljanje hrvatskog locale-a za ispravno čitanje datuma i znakova
+# Ovo pomaže ako nazivi mjeseci ili posebni znakovi stvaraju problem
+# Ako i dalje imate problema, pokušajte s "hr_HR.UTF-8" ili izostavite ovaj redak
+tryCatch({
+  Sys.setlocale("LC_TIME", "hrvatski")
+}, warning = function(w) {
+  message("Nije moguće postaviti 'hrvatski' locale. Koristim defaultni.")
+})
+
+# --- 1. Učitavanje i priprema podataka ---
+
+# Učitavanje CSV datoteke
+# read_csv će automatski pokušati prepoznati tipove stupaca
+file_path <- "C:/Users/lukas/Determbaza/PresscutHNB/HNB 8 2025 puni sadržaj.xlsx"
+tryCatch({
+  # Koristimo read_excel za učitavanje
+  df <- read_excel(file_path, sheet = "Popis")
+}, error = function(e) {
+  # Ako list 'Popis' ne postoji, pokušaj učitati prvi list
+  message("List 'Popis' nije pronađen, pokušavam učitati prvi list...")
+  tryCatch({
+     df <<- read_excel(file_path, sheet = 1)
+  }, error = function(e2) {
+     stop(paste("Nije moguće učitati Excel datoteku:", e2))
+  })
+})
+
+
+
+```
+
+
+```{r}
+df_clean <- df %>%
+  # Pretvaramo 'Vrijednost €' u numeričku vrijednost.
+  mutate(Vrijednost_EUR = as.numeric(`Vrijednost €`)) %>%
+  
+  # Pretvaramo 'Datum izdanja' u Date objekt
+  # read_excel često sam prepozna datume, ali osiguravamo da je Date objekt
+  mutate(Datum_Izdanja_Clean = as_date(`Datum izdanja`)) %>%
+  
+  # Izbacujemo retke gdje datum nije prepoznat ili gdje je vrijednost 0 ili NA
+  filter(!is.na(Datum_Izdanja_Clean) & !is.na(Vrijednost_EUR) & Vrijednost_EUR > 0)
+
+# Provjera imamo li podataka nakon filtriranja
+if (nrow(df_clean) == 0) {
+  stop("Nema podataka za analizu nakon filtriranja (Vrijednost > 0 i ispravan datum).")
+} else {
+  message(paste("Podatci uspješno učitani i pročišćeni. Nastavljam s", nrow(df_clean), "redaka."))
+}
+
+
+```
+
+
+
+```{r}
+topic_palette <- c(
+  "#003366",  # Dark Blue
+  "#5B9BD5",  # Medium Blue
+  "#C00000",  # Accent Red
+  "#BF8F00",  # Accent Gold
+  "#005F56",  # Dark Green
+  "#A0522D",  # Muted Sienna
+  "#7F7F7F",  # Medium Grey
+  "#8A798C"   # Muted Mauve
+)
+
+# --- 2. Priprema podataka (iz vašeg koda) ---
+# Pretpostavka: df_clean već postoji i obrađen je
+vrsta_medija_data <- df_clean %>%
+  group_by(`Vrsta medija`) %>%
+  summarise(Ukupna_Vrijednost = sum(Vrijednost_EUR, na.rm = TRUE))
+
+# --- 3. Kreiranje grafikona (s primijenjenom temom i paletom) ---
+graf_3_stupcasti_themed <- vrsta_medija_data %>%
+  # Mapiramo estetiku
+  ggplot(aes(x = fct_reorder(`Vrsta medija`, Ukupna_Vrijednost, .desc = TRUE), 
+             y = Ukupna_Vrijednost, 
+             fill = `Vrsta medija`)) +
+  
+  # Stupci (širina iz naučenog primjera)
+  geom_col(width = 0.8) + 
+  
+  # Tekstualne labele (veličina iz naučenog primjera)
+  geom_text(aes(label = scales::comma(Ukupna_Vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",")), 
+            vjust = -0.5, 
+            color = "black", 
+            size = 4) + 
+  
+  # Prilagođavamo Y-os da stane tekst (slično expand_limits)
+  scale_y_continuous(labels = label_comma(suffix = " €", big.mark = ".", decimal.mark = ","),
+                     expand = expansion(mult = c(0, 0.15))) +
+  
+  # --- PRIMJENA NAUČENE PALETE ---
+  scale_fill_manual(values = topic_palette) +
+  
+  # Labele
+  labs(
+    title = "Ukupna medijska vrijednost (€) po vrsti medija",
+    subtitle = "Usporedba ukupne vrijednosti objava po vrstama medija",
+    x = "Vrsta medija",
+    y = "Ukupna vrijednost (€)"
+  ) +
+  
+  # --- PRIMJENA NAUČENE TEME ---
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none",                # Uklanja legendu (kako je traženo)
+    panel.grid.major.x = element_blank(),    # Uklanja vertikalne linije
+    panel.grid.minor.y = element_blank()     # Uklanja sitne horizontalne linije
+  )
+
+graf_3_stupcasti_themed
+```
+
+
+#### Top mediji
+
+```{r}
+topic_palette <- c(
+  "#003366",  # Dark Blue
+  "#5B9BD5",  # Medium Blue
+  "#C00000",  # Accent Red
+  "#BF8F00",  # Accent Gold
+  "#005F56",  # Dark Green
+  "#A0522D",  # Muted Sienna
+  "#7F7F7F",  # Medium Grey
+  "#8A798C"   # Muted Mauve
+)
+
+# --- 2. Priprema podataka (iz vašeg koda) ---
+# Pretpostavka: df_clean već postoji i obrađen je
+top_mediji_po_vrsti <- df_clean %>%
+  filter(!is.na(`Vrsta medija`) & !is.na(Medij)) %>%
+  group_by(`Vrsta medija`, Medij) %>%
+  summarise(Ukupna_Vrijednost = sum(Vrijednost_EUR, na.rm = TRUE), .groups = "drop") %>%
+  group_by(`Vrsta medija`) %>%
+  slice_max(order_by = Ukupna_Vrijednost, n = 10) %>%
+  ungroup() %>%
+  mutate(
+    Medij_reordered = reorder_within(Medij, Ukupna_Vrijednost, `Vrsta medija`)
+  )
+
+# --- 3. Crtanje Facet Grafikona (s primijenjenom temom) ---
+graf_top_mediji_faceted_themed <- top_mediji_po_vrsti %>%
+  ggplot(aes(x = Ukupna_Vrijednost, y = Medij_reordered, fill = `Vrsta medija`)) +
+  
+  # Stupci (širina iz naučenog stila)
+  geom_col(width = 0.8) +
+  
+  # Tekstualne labele (iz naučenog stila)
+  geom_text(
+    aes(label = scales::comma(Ukupna_Vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",")),
+    hjust = -0.05, 
+    size = 3.5, # Malo manja veličina zbog faceta
+    color = "black"
+  ) +
+  
+  # Čišćenje Y-osi
+  scale_y_reordered() +
+  
+  # Formatiranje X-osi (s prostorom za labele)
+  scale_x_continuous(
+    labels = label_comma(suffix = " €", big.mark = ".", decimal.mark = ","),
+    expand = expansion(mult = c(0, 0.25)) # Proširujemo os da stane tekst
+  ) +
+  
+  # --- PRIMJENA NAUČENE PALETE ---
+  scale_fill_manual(values = topic_palette) +
+  
+  # Facete (iz vašeg koda)
+  facet_wrap(~ `Vrsta medija`, scales = "free") +
+  
+  # Labele (iz vašeg koda)
+  labs(
+    title = "Top 10 medija po ukupnoj medijskoj vrijednosti (€)",
+    subtitle = "Prikazano po vrsti medija",
+    x = "Ukupna vrijednost (€)",
+    y = "Medij"
+  ) +
+  
+  # --- PRIMJENA NAUČENE TEME ---
+  theme_minimal(base_size = 14) + # Osnovna veličina iz naučenog stila
+  theme(
+    legend.position = "none",                # Uklanja legendu
+    panel.grid.major.y = element_blank(),    # Uklanja horizontalne linije
+    panel.grid.minor.y = element_blank(),
+    panel.grid.major.x = element_line(color = "grey90"), # Ostavljamo suptilne vertikalne
+    strip.text = element_text(face = "bold", size = 12) # Ističemo naslove faceta
+  )
+
+graf_top_mediji_faceted_themed
+```
+
+#### Top autori
+
+```{r}
+top_autori_data <- df_clean %>%
+  filter(!is.na(Autor)) %>%
+  group_by(Autor) %>%
+  summarise(
+    Ukupna_Vrijednost = sum(Vrijednost_EUR, na.rm = TRUE)
+  ) %>%
+  slice_max(order_by = Ukupna_Vrijednost, n = 15) %>%
+  ungroup()
+
+# --- 2. Crtanje grafikona (s jednom bojom) ---
+# Ovdje NE mapiramo 'fill' u aes(), nego ga postavljamo statički u geom_col()
+graf_top_autori_single_color <- top_autori_data %>%
+  ggplot(aes(x = Ukupna_Vrijednost, 
+             y = fct_reorder(Autor, Ukupna_Vrijednost))) +
+  
+  # --- IZMJENA: 'fill' je postavljen na statičnu boju iz vaše palete ---
+  geom_col(fill = "#005F56", width = 0.8) + # Tamno zelena
+  
+  geom_text(
+    aes(label = scales::comma(Ukupna_Vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",")),
+    hjust = -0.05, 
+    size = 4,
+    color = "black"
+  ) +
+  
+  scale_x_continuous(
+    labels = label_comma(suffix = " €", big.mark = ".", decimal.mark = ","),
+    expand = expansion(mult = c(0, 0.25)) 
+  ) +
+  
+  labs(
+    title = "Top 15 autora po ukupnoj medijskoj vrijednosti (€)",
+    subtitle = "Ukupna vrijednost objava po autoru",
+    x = "Ukupna vrijednost (€)",
+    y = "Autor"
+  ) +
+  
+  # --- Primjena naučenog stila teme ---
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "none", # Legenda nije ni potrebna
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+graf_top_autori_single_color
+```
+
+#### Top autori II
+
+
+```{r}
+
+
+sentiment_palette <- c(
+  "Negativna" = "#C00000",  # Accent Red
+  "Pozitivna" = "#005F56",  # Dark Green
+  "Neutralna" = "#7F7F7F"   # Medium Grey
+)
+top_15_autori_lista <- df_clean %>%
+  filter(!is.na(Autor) & !is.na(`Događajna orijentacija`)) %>%
+  group_by(Autor) %>%
+  summarise(Ukupna_Vrijednost_Total = sum(Vrijednost_EUR, na.rm = TRUE)) %>%
+  slice_max(order_by = Ukupna_Vrijednost_Total, n = 15) %>%
+  pull(Autor) # Izvuci samo imena
+
+# Sada pripremamo podatke za grafikon, grupirane po autoru I sentimentu
+autori_po_sentimentu_data <- df_clean %>%
+  filter(!is.na(Autor) & !is.na(`Događajna orijentacija`) & `Događajna orijentacija` != "") %>%
+  # Filtriramo samo one autore koji su u naših Top 15
+  filter(Autor %in% top_15_autori_lista) %>%
+  
+  # Grupiramo po autoru I sentimentu
+  group_by(Autor, `Događajna orijentacija`) %>%
+  summarise(Ukupna_Vrijednost = sum(Vrijednost_EUR, na.rm = TRUE), .groups = "drop")
+
+# --- 2b. Crtanje grafikona za Autore ---
+graf_autori_po_sentimentu <- autori_po_sentimentu_data %>%
+  ggplot(aes(
+    # Sortiramo Y-os po ukupnoj vrijednosti
+    y = fct_reorder(Autor, Ukupna_Vrijednost, .fun = sum, .desc = FALSE), 
+    x = Ukupna_Vrijednost, 
+    fill = `Događajna orijentacija`
+  )) +
+  
+  geom_col(width = 0.8) +
+  
+  # Primjenjujemo našu definiranu paletu za sentiment
+  scale_fill_manual(values = sentiment_palette) +
+  
+  scale_x_continuous(
+    labels = label_comma(suffix = " €", big.mark = ".", decimal.mark = ","),
+    expand = expansion(mult = c(0, 0.05)) # Malo prostora na desno
+  ) +
+  
+  labs(
+    title = "Vrijednost Top 15 Autora po Sentimentu",
+    subtitle = "Ukupna medijska vrijednost (€) raščlanjena po događajnoj orijentaciji",
+    x = "Ukupna vrijednost (€)",
+    y = "Autor",
+    fill = "Sentiment:"
+  )
+
+graf_autori_po_sentimentu
+```
+
+
+
+#### Top teme
+
+```{r}
+sentiment_palette <- c(
+  "Negativna" = "#C00000",  # Accent Red
+  "Pozitivna" = "#005F56",  # Dark Green
+  "Neutralna" = "#7F7F7F"   # Medium Grey
+)
+
+# --- 1. Priprema podataka s kraćim nazivima ---
+top_teme_data <- df_clean %>%
+  filter(!is.na(Tema) & Tema != "") %>%
+  group_by(Tema) %>%
+  summarise(Ukupna_Vrijednost = sum(Vrijednost_EUR, na.rm = TRUE), .groups = "drop") %>%
+  slice_max(order_by = Ukupna_Vrijednost, n = 15) %>%
+  
+  # --- OVDJE JE IZMJENA ---
+  # Kreiramo novu varijablu 'Kratka_Tema'
+  mutate(
+    # Brojimo riječi (bilo koji niz znakova koji nije razmak)
+    broj_rijeci = str_count(Tema, "\\S+"), 
+    
+    # Ako ima više od 4 riječi, skrati i dodaj "..."
+    # inače, ostavi kako je. Funkcija word() uzima prvih 'n' riječi.
+    Kratka_Tema = ifelse(broj_rijeci > 4,
+                         paste(word(Tema, 1, 4, sep = " "), "..."),
+                         Tema)
+  )
+
+# --- 2. Crtanje grafikona (s novom varijablom) ---
+graf_top_teme_kratko <- top_teme_data %>%
+  # Koristimo 'Kratka_Tema' za Y os, ali je sortiramo po 'Ukupna_Vrijednost'
+  ggplot(aes(x = Ukupna_Vrijednost, y = fct_reorder(Kratka_Tema, Ukupna_Vrijednost))) +
+  
+  geom_col(fill = "#C00000") +
+  
+  # Dodajemo tekstualnu labelu s punom vrijednosti
+  geom_text(
+    aes(label = scales::comma(Ukupna_Vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",")),
+    hjust = -0.05,
+    size = 3.5,
+    color = "black"
+  ) +
+  
+  scale_x_continuous(
+    labels = label_comma(suffix = " €", big.mark = ".", decimal.mark = ","),
+    # Proširujemo os (za 25%) da stane tekst
+    expand = expansion(mult = c(0, 0.25)) 
+  ) +
+  
+  labs(
+    title = "Top 15 tema po ukupnoj medijskoj vrijednosti (€)",
+    subtitle = "Ukupna vrijednost objava po temi (nazivi skraćeni na max. 4 riječi)", # Ažuriran podnaslov
+    x = "Ukupna vrijednost (€)",
+    y = "Tema"
+  ) +
+  
+  # Koristimo temu iz prethodnih primjera
+  theme_minimal() +
+  theme(
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+graf_top_teme_kratko
+
+```
+
+#### Top teme II
+
+
+```{r}
+sentiment_palette <- c(
+  "Negativna" = "#C00000",  # Accent Red
+  "Pozitivna" = "#005F56",  # Dark Green
+  "Neutralna" = "#7F7F7F"   # Medium Grey
+)
+
+# --- 2. Postavljanje naučene TEME za grafikone ---
+theme_set(
+  theme_minimal(base_size = 14) +
+  theme(
+    legend.position = "bottom",               # Legenda je ovdje važna
+    panel.grid.major.y = element_blank(),     # Uklanja horizontalne linije
+    panel.grid.minor.y = element_blank(),
+    panel.grid.major.x = element_line(color = "grey90"), # Ostavlja suptilne vertikalne
+    plot.title = element_text(face = "bold", size = 16)
+  )
+)
+
+# ===================================================================
+#   GRAFIKON 1: TOP 15 TEMA PO VRIJEDNOSTI I SENTIMENTU
+# ===================================================================
+
+# --- 1a. Priprema podataka za Teme ---
+
+# Prvo, pronalazimo Top 15 tema po UKUPNOJ vrijednosti
+top_15_teme_lista <- df_clean %>%
+  filter(!is.na(Tema) & Tema != "" & !is.na(`Događajna orijentacija`)) %>%
+  # Kreiramo skraćene nazive tema (max 4 riječi)
+  mutate(
+    Kratka_Tema = ifelse(str_count(Tema, "\\S+") > 4,
+                         paste(word(Tema, 1, 4, sep = " "), "..."),
+                         Tema)
+  ) %>%
+  group_by(Kratka_Tema) %>%
+  summarise(Ukupna_Vrijednost_Total = sum(Vrijednost_EUR, na.rm = TRUE)) %>%
+  slice_max(order_by = Ukupna_Vrijednost_Total, n = 15) %>%
+  pull(Kratka_Tema) # Izvuci samo imena
+
+# Sada pripremamo podatke za grafikon, grupirane po temi I sentimentu
+teme_po_sentimentu_data <- df_clean %>%
+  filter(!is.na(`Događajna orijentacija`) & `Događajna orijentacija` != "") %>%
+  # Kreiramo skraćene nazive tema
+  mutate(
+    Kratka_Tema = ifelse(str_count(Tema, "\\S+") > 4,
+                         paste(word(Tema, 1, 4, sep = " "), "..."),
+                         Tema)
+  ) %>%
+  # Filtriramo samo one teme koje su u naših Top 15
+  filter(Kratka_Tema %in% top_15_teme_lista) %>%
+  
+  # Grupiramo po temi I sentimentu
+  group_by(Kratka_Tema, `Događajna orijentacija`) %>%
+  summarise(Ukupna_Vrijednost = sum(Vrijednost_EUR, na.rm = TRUE), .groups = "drop")
+
+# --- 1b. Crtanje grafikona za Teme ---
+graf_teme_po_sentimentu <- teme_po_sentimentu_data %>%
+  ggplot(aes(
+    # Sortiramo Y-os po ukupnoj vrijednosti (zbrajamo sve sentimente za taj red)
+    y = fct_reorder(Kratka_Tema, Ukupna_Vrijednost, .fun = sum, .desc = FALSE), 
+    x = Ukupna_Vrijednost, 
+    fill = `Događajna orijentacija`
+  )) +
+  
+  # Koristimo geom_col() za stacked bar chart
+  geom_col(width = 0.8) + 
+  
+  # Primjenjujemo našu definiranu paletu za sentiment
+  scale_fill_manual(values = sentiment_palette) +
+  
+  scale_x_continuous(
+    labels = label_comma(suffix = " €", big.mark = ".", decimal.mark = ","),
+    expand = expansion(mult = c(0, 0.05)) # Malo prostora na desno
+  ) +
+  
+  labs(
+    title = "Vrijednost Top 15 Tema po Sentimentu",
+    subtitle = "Ukupna medijska vrijednost (€) raščlanjena po događajnoj orijentaciji",
+    x = "Ukupna vrijednost (€)",
+    y = "Tema (skraćena na 4 riječi)",
+    fill = "Sentiment:"
+  )
+
+graf_teme_po_sentimentu
+```
+
+:::
 
 ---
 
-## Isporuke i Ishodi
 
-Po završetku pilota, HNB će dobiti:
-
--   **Potpuno dokumentiranu i ponovljivu R kodnu bazu.**
--   **Validacijski izvještaj** koji detaljno opisuje statistička svojstva indeksa.
--   **Interaktivni prototip Quarto nadzorne ploče** za internu upotrebu.
--   **Završnu prezentaciju** nalaza i preporuka za daljnji razvoj.
-
----
 
 ## Potrebni resursi
 
@@ -2439,7 +2901,7 @@ Ovaj projekt je dizajniran da bude agilan i visoko kolaborativan.
 -   Nije potreban specijalizirani hardver za pilot fazu.
 
 #### Podatci
--   Cijeli medijski prostor (Determ).
+-   Cijeli medijski prostor.
 -   Povijesni medijski podaatci o HNB.
 
 
