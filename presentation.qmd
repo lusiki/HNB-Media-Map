@@ -76,9 +76,9 @@ platform_color_mapping <- c(
 
 - > **Digitalni medijski prostor u RH:** [Definiraju](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/01-kontekst.html) ga politička ekonomija digitalnog klika, prijeđeni put i algoritamska arhitektura javnog diskursa.
 
-- > **Komunikacija središnjih banaka:** Značajna promjena od [tajnovitosti do transparentnosti](https://www.youtube.com/watch?v=u453NZsw74w&list=PLt9jC4Ylzr6CMEcksfFf_DX7nw6Ox_YgH) (1980e do 2000e), preko [komunikacijske revolucije](https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp898.pdf) (1990e do ranih 2000ih), do [aktivnog angažmana](https://research.vu.nl/ws/portalfiles/portal/362043989/blinder-et-al-2024-central-bank-communication-with-the-general-public-promise-or-false-hope.pdf) u medijskom prostoru.
+- > **Komunikacija središnjih banaka:** Značajna promjena od [tajnovitosti do transparentnosti](https://www.youtube.com/watch?v=u453NZsw74w&list=PLt9jC4Ylzr6CMEcksfFf_DX7nw6Ox_YgH) (1980e do 2000e), preko [komunikacijske revolucije](https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp898.pdf) (1990e do ranih 2000ih), do [aktivnog angažmana](https://research.vu.nl/ws/portalfiles/portal/362043989/blinder-et-al-2024-central-bank-communication-with-the-general-public-promise-or-false-hope.pdf) u medijskom prostoru, posebno na [društvenim medijima](https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/joes.12550).
 
-- > **Ekonomska literatura:** Računalne društvene znanosti i korištenje velikih podataka su standardni u sve većem broju primjena  u makroekonomiji i financijama, posebno [tekstualnih podataka](https://web.stanford.edu/~gentzkow/research/text-as-data.pdf). To je prihvaćeno od strane [središnjih banaka](https://www.economicsobservatory.com/can-textual-analysis-be-used-track-economy-during-pandemic) ([ECB](https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp3047~cb0f0cf37f.en.pdf), Fed, [BoE](https://www.bankofengland.co.uk/-/media/boe/files/ccbs/resources/text-mining-for-central-banks.pdf), [BIS](https://www.bis.org/review/r250224d.pdf)).
+- > **Ekonomska literatura:** Računalne društvene znanosti i korištenje velikih podataka su standardni u sve većem broju primjena  u makroekonomiji i financijama, posebno [tekstualnih podataka](https://web.stanford.edu/~gentzkow/research/text-as-data.pdf). To je prihvaćeno od strane [središnjih banaka](https://www.economicsobservatory.com/can-textual-analysis-be-used-track-economy-during-pandemic) ([ECB](https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp3047~cb0f0cf37f.en.pdf), [Fed](https://arxiv.org/pdf/2111.06365), [BoE](https://www.bankofengland.co.uk/-/media/boe/files/ccbs/resources/text-mining-for-central-banks.pdf), [BIS](https://www.bis.org/review/r250224d.pdf),[BDF](https://www.banque-france.fr/system/files/2024-06/WP950.pdf)).
 
 ---
 
@@ -2243,7 +2243,7 @@ ggplot() +
 
 #### Nesigurnost 
 
-[i](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf)
+- [*](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf)
 
 
 ```{r}
@@ -2382,11 +2382,21 @@ ggplot(epu_index_filtered, aes(x = month_date, y = epu_index)) +
 
 
 
-#### Financijska stabilnost
-
-https://www.rba.gov.au/publications/bulletin/2024/jan/inflation-expectations-and-economic-literacy.html
+#### Druge ideje
 
 
+
+- [Komunikacija središnjih banaka I](https://www.nber.org/system/files/working_papers/w28592/w28592.pdf)
+
+- [Komunikacija središnjih banaka II](https://www.tandfonline.com/doi/pdf/10.1080/1406099X.2024.2303904?needAccess=true)
+
+- [Nowcasting](https://publications.banque-france.fr/sites/default/files/medias/documents/wp921.pdf)
+
+- [Međunarodna ekonomije](https://www.nber.org/system/files/working_papers/w25353/w25353.pdf)
+
+- [AI](https://www.bis.org/publ/arpdf/ar2024e3.pdf)
+
+- [Pregled](https://www.banque-france.fr/system/files/2024-06/WP950.pdf)
 :::
 
 ---
