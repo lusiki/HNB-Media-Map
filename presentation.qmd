@@ -2928,7 +2928,694 @@ topic_pairs %>%
 
 
 
+```{r emotional-analysis, include=FALSE, eval=T}
+# --- Izračuni za dvoslojnu analizu (izvršava se u pozadini) ---
 
+# Sloj 1: Sentiment Score (CroSentilex)
+# document_sentiments <- nlp_results_df %>%
+#   inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+#   group_by(doc_id) %>%
+#   summarise(sentiment_score = median(sentiment_value, na.rm = TRUE)) %>%
+#   ungroup()
+# files <- list.files("D:/LUKA/Language model", full.names = TRUE, pattern = "\\.rds")
+# nlp_results_df <- lapply(files, readRDS) %>%
+#   bind_rows() %>%
+#   mutate(doc_id = as.integer(doc_id))
+
+
+sentiment_counts_gold <- nlp_results_df %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  # Filtriramo neutralne riječi jer nam ne trebaju za ovu formulu
+  filter(sentiment_value != 0) %>% 
+  # Brojimo koliko je pozitivnih (1) i negativnih (-1) riječi
+  count(doc_id, sentiment_value) %>%
+  # Pretvaramo u široki format da imamo stupce za 'pozitivne' i 'negativne'
+  pivot_wider(names_from = sentiment_value, values_from = n, values_fill = 0)
+
+# --- DEFENZIVNI BLOK KODA ---
+# Provjeravamo postoji li stupac '1' (pozitivni). Ako ne, dodajemo ga s nulama.
+if (!"1" %in% names(sentiment_counts_gold)) {
+  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`1` = 0) }
+# Provjeravamo postoji li stupac '-1' (negativni). Ako ne, dodajemo ga s nulama.
+if (!"-1" %in% names(sentiment_counts_gold)) {
+  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`-1` = 0) }
+# --- KRAJ DEFENZIVNOG BLOKA ---
+
+# Sada sigurno preimenujemo stupce jer znamo da postoje
+sentiment_counts_gold <- sentiment_counts_gold %>%
+  rename(
+    positive_words = `1`,
+    negative_words = `-1` )
+
+
+epsilon <- 1e-6 
+
+document_sentiments_gold <- sentiment_counts_gold %>%
+  mutate(
+    sentiment_score_gold = (positive_words - negative_words) / (positive_words + negative_words + epsilon)
+  ) %>%
+  select(doc_id, sentiment_score_gold)
+
+# Sloj 2: Dominantni Psihološki Proces (NRC)
+document_emotions <- nlp_results_df %>%
+  inner_join(nrc_lexicon_long, by = c("lemma" = "word")) %>%
+  count(doc_id, emotion) %>%
+  group_by(doc_id) %>%
+  slice_max(order_by = n, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(doc_id, dominant_emotion = emotion)
+
+# Spajanje svega u jedan dataframe
+dta_atmosphere <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(document_emotions, by = "doc_id") %>%
+  mutate(
+    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion)
+  )
+
+# Priprema podataka za vizualizaciju
+heatmap_data <- dta_atmosphere %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic, dominant_emotion) %>%
+  summarise(avg_sentiment = mean(sentiment_score),
+            n_articles = n()) %>%
+  ungroup() %>%
+  # Prikazujemo samo emocije s dovoljno članaka za analizu
+  filter(n_articles > 1)
+```
+
+
+```{r plot-emotion-heatmap, fig.width=10, fig.height=6, echo=FALSE}
+ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_sentiment)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = round(avg_sentiment, 2)), size = 3, color = "black") +
+  scale_fill_gradient2(low = "firebrick", mid = "white", high = "steelblue", midpoint = 0, name = "Prosj. Sentiment") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Matrica atmosfere: Kako psihološki okvir utječe na tonalitet teme",
+    subtitle = "Boja ćelije predstavlja prosječni sentiment (CroSentilex) unutar svake kombinacije teme i dominantne emocije (NRC)",
+    x = "Dominantni psihološki proces (NRC)",
+    y = "Dominantna tema"
+  )
+```
+
+
+```{r rci-calculation, include=FALSE}
+# --- Izračuni za RCI (izvršava se u pozadini) ---
+conflict_lexicon <- nrc_lexicon_long %>% 
+  filter(emotion %in% c("Ljutnja", "Gađenje")) %>% 
+  pull(word) %>% 
+  unique()
+
+
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c(
+  # Opći konflikt i kritika (General Conflict & Criticism)
+  "kritik", "laž", "napad", "upozorenj", "licemjerje", "sramotno", "manipulacij", 
+  "propaganda", "ekstrem", "kontroverz", "sukob", "optužb", "prijetnj", "opasnost",
+
+  # Kriza i neuspjeh (Crisis & Failure)
+  "kriza", "kolaps", "slom", "propast", "gubitak", "šteta", "neuspjeh", "recesija",
+
+  # Nezakonitosti i skandali (Illegality & Scandals)
+  "skandal", "afera", "korupcij", "prevara", "prijevara", "zlouporaba", "tužb", 
+  "presuda", "nezakonito", "sukob interesa", "netransparentnost",
+  
+  # Ekonomski pritisci i rizici (Economic Pressures & Risks)
+  "rizik", "dug", "deficit", "teret", "namet", "trošak", "siromaštv", "špekulacij", 
+  "mjehur", # (npr. nekretninski mjehur)
+
+  # Specifične povijesne kontroverze (Specific Historical Controversies)
+  "franak", "švicarac", "klub"
+)
+))
+
+
+
+
+
+cli_scores <- nlp_results_df %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    cli = (sum(is_conflict) / n()) * 1000
+  )
+
+dta_atmosphere <- dta_enriched %>% 
+  left_join(cli_scores, by = "doc_id") %>%
+  mutate(cli = ifelse(is.na(cli), 0, cli))
+
+avg_cli_media <- dta_atmosphere %>% group_by(Medij) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_atmosphere %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_atmosphere <- dta_atmosphere %>%
+  left_join(avg_cli_media, by = "Medij") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+```
+
+
+```{r}
+# --- MODUL ZA MAPU MEDIJSKIH STRATEGIJA (ISPRAVLJENA VERZIJA) ---
+
+# Izračun CLI-a (ostaje isto)
+cli_scores <- nlp_results_df %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    cli = (sum(is_conflict) / n()) * 1000
+  ) %>% ungroup()
+
+# Spajanje i izračun RCI-a (ostaje isto)
+dta_atmosphere <- dta_enriched %>% 
+  left_join(cli_scores, by = "doc_id") %>%
+  mutate(cli = ifelse(is.na(cli), 0, cli))
+
+avg_cli_media <- dta_atmosphere %>% group_by(Medij) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_atmosphere %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_atmosphere_final <- dta_atmosphere %>%
+  left_join(avg_cli_media, by = "Medij") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+```
+
+
+
+```{r plot-rci-strategy, fig.width=10, fig.height=7, warning=FALSE, message=FALSE}
+media_strategy_data <- dta_atmosphere_final %>%
+  # Grupiramo po mediju
+  group_by(Medij) %>%
+  # Računamo naše metrike I broj članaka
+  summarise(
+    avg_cli = mean(cli, na.rm = TRUE),
+    rci_sd = sd(rci, na.rm = TRUE),
+    n_articles = n()
+  ) %>%
+  ungroup() #%>%
+  # Filtriramo medije s premalo članaka i one gdje je devijacija NA
+  #filter(n_articles > 1, !is.na(rci_sd), rci_sd > 0) %>%
+  # Uzimamo top 30 po broju članaka radi preglednosti
+  #slice_max(order_by = n_articles, n = 2)
+
+# Vizualizacija s poboljšanjima
+ggplot(media_strategy_data, aes(x = avg_cli, y = rci_sd, size = n_articles)) + # Dodajemo size = n_articles
+  # Dodajemo malo "jittera" da se točke koje su blizu razdvoje
+  geom_jitter(color = "darkred", alpha = 0.7, width = 0.01, height = 0.01) + 
+  
+  geom_text_repel(aes(label = Medij), size = 3.5, max.overlaps = 15) +
+  
+  # KORISTIMO LOGARITAMSKU SKALU za bolju distribuciju
+  scale_x_log10(labels = scales::number_format(accuracy = 0.1)) +
+  scale_y_log10(labels = scales::number_format(accuracy = 0.1)) +
+  
+  scale_size_continuous(range = c(2, 10), name = "Broj članaka") +
+  
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Mapa medijskih strategija konflikta",
+    subtitle = "Pozicija medija temeljena na prosječnoj razini i varijabilnosti konfliktnog jezika",
+    x = "Prosječni indeks konfliktnog jezika (CLI) - 'Kućni Ton' (Log Skala)",
+    y = "Standardna devijacija RCI-a - 'Nepredvidivost' (Log Skala)"
+  )
+```
+
+
+
+```{r lexicons, include=FALSE, eval=FALSE}
+# read in lexicons
+CroSentilex_n <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
+                                   header = FALSE,
+                                   sep = " ",
+                                   stringsAsFactors = FALSE,
+                                   fileEncoding = "UTF-8")  %>%
+                   rename(word = "V1", sentiment = "V2" ) %>%
+                   mutate(brija = "NEG")
+
+CroSentilex_p  <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-positives.txt",
+                                   header = FALSE,
+                                   sep = " ",
+                                   stringsAsFactors = FALSE,
+                                   fileEncoding = "UTF-8") %>%
+                    rename(word = "V1", sentiment = "V2" ) %>%
+                    mutate(brija = "POZ")
+
+crosentilex  <- rbind(setDT(CroSentilex_n), setDT(CroSentilex_p))
+# # check lexicon data 
+# #head(sample_n(Crosentilex_sve,1000),15)
+# 
+#  
+CroSentilex_Gold  <- read.delim2("C:/Users/Lukas/Dropbox/Mislav@Luka/gs-sentiment-annotations.txt",
+                                 header = FALSE,
+                                 sep = " ",
+                                 stringsAsFactors = FALSE) %>%
+                    rename(word = "V1", sentiment = "V2" )
+ # Encoding(CroSentilex_Gold$word) <- "UTF-8"
+ # CroSentilex_Gold[1,1] <- "dati"
+ # CroSentilex_Gold$sentiment <- str_replace(CroSentilex_Gold$sentiment , "-", "1")
+ # CroSentilex_Gold$sentiment <- str_replace(CroSentilex_Gold$sentiment , "\\+", "2")
+ # CroSentilex_Gold$sentiment <- as.numeric(unlist(CroSentilex_Gold$sentiment))
+# check lexicon data 
+#head(sample_n(CroSentilex_Gold,100),15)
+crosentilex_gold_prepared <- CroSentilex_Gold %>%
+  mutate(
+    sentiment_value = case_when(
+      sentiment == 2 ~ 1,   # Pozitivno
+      sentiment == 1 ~ -1,  # Negativno
+      TRUE ~ 0              # Neutralno
+    )
+  ) %>%
+  select(word, sentiment_value)
+
+ 
+nrc_lexicon  <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean.xlsx", sheet = "Sheet1") %>% select (-"...1")
+
+
+# Prvo definiramo "rječnik" za prevođenje
+emotion_translator_hr <- c(
+  "Anger"        = "Ljutnja",
+  "Anticipation" = "Iščekivanje",
+  "Disgust"      = "Gađenje",
+  "Fear"         = "Strah",
+  "Joy"          = "Radost",
+  "Sadness"      = "Tuga",
+  "Surprise"     = "Iznenađenje",
+  "Trust"        = "Povjerenje"
+  # Ne trebamo 'Positive' i 'Negative' jer ih ionako filtriramo
+)
+
+# Sada modificiramo originalni cjevovod
+nrc_lexicon_long <- nrc_lexicon %>%
+  rename(word = HR) %>% 
+  pivot_longer(
+    cols = -word,
+    names_to = "emotion",
+    values_to = "value"
+  ) %>%
+  filter(value == 1) %>%
+  select(word, emotion) %>%
+  # Filtriramo opće sentimente PRIJE prevođenja
+  filter(emotion != "Positive" & emotion != "Negative") %>%
+  # DODAJEMO NOVI KORAK: Prevođenje stupca 'emotion'
+  mutate(emotion = recode(emotion, !!!emotion_translator_hr))
+
+nrc_lexicon_long_ <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean_long.xlsx", sheet = "Sheet1") %>% select (-"...1") 
+
+```
+
+
+```{r load-lexicons}
+# --- FAZA 1: UČITAVANJE I PRIPREMA SVIH LEKSIKONA ---
+# Ovaj chunk učitava sve potrebne jezične resurse i pretvara ih u "uredan" (tidy)
+# format spreman za spajanje s lingvističkim podacima.
+# Ključni koraci su forsiranje UTF-8 kodiranja i standardizacija formata.
+
+# --- 1.1: CroSentilex (fina skala sentimenata) ---
+# Učitavamo pozitivne i negativne liste i odmah ih spajamo u jedan leksikon
+# sa standardiziranom numeričkom skalom.
+crosentilex_full <- bind_rows(
+  # Učitavanje negativnih riječi
+  read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
+             header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+    rename(word = "V1", sentiment_value = "V2") %>%
+    mutate(sentiment_value = -sentiment_value), # Pretvaramo score u negativan
+  
+  # Učitavanje pozitivnih riječi
+  read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-positives.txt",
+             header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+    rename(word = "V1", sentiment_value = "V2") # Score je već pozitivan
+) %>%
+  as_tibble() # Pretvaramo u tibble radi bolje konzistentnosti
+
+# --- 1.2: CroSentilex-Gold (kategorički sentiment) ---
+# Učitavamo "zlatni standard" i pretvaramo tekstualne oznake u numeričku skalu (-1, 0, 1).
+crosentilex_gold_prepared <- read.delim2("C:/Users/Lukas/Dropbox/Mislav@Luka/gs-sentiment-annotations.txt",
+                                         header = FALSE, sep = " ", stringsAsFactors = FALSE, fileEncoding = "UTF-8") %>%
+  rename(word = "V1", sentiment_str = "V2") %>%
+  mutate(
+    sentiment_value = case_when(
+      sentiment_str == "+" ~ 1,
+      sentiment_str == "-" ~ -1,
+      TRUE ~ 0
+    )
+  ) %>%
+  select(word, sentiment_value) %>%
+  as_tibble()
+
+# --- 1.3: NRC Leksikon Emocija (za psihološke procese) ---
+# Učitavamo NRC leksikon, pretvaramo ga u "dugi" format i prevodimo na hrvatski.
+nrc_lexicon_raw <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean.xlsx", sheet = "Sheet1") %>% 
+                   select(-"...1") %>%
+                   rename(word = HR)
+
+# Rječnik za prevođenje engleskih naziva emocija
+emotion_translator_hr <- c(
+  "Anger" = "Ljutnja", "Anticipation" = "Iščekivanje", "Disgust" = "Gađenje",
+  "Fear" = "Strah", "Joy" = "Radost", "Sadness" = "Tuga",
+  "Surprise" = "Iznenađenje", "Trust" = "Povjerenje"
+)
+
+# Transformacija u dugi, prevedeni format
+nrc_lexicon_long <- nrc_lexicon_raw %>% 
+  pivot_longer(
+    cols = all_of(names(emotion_translator_hr)), # Koristimo samo 8 glavnih emocija
+    names_to = "emotion",
+    values_to = "value"
+  ) %>%
+  filter(value == 1) %>% # Zadržavamo samo postojeće veze riječ-emocija
+  mutate(emotion = recode(emotion, !!!emotion_translator_hr)) %>% # Prevodimo na hrvatski
+  select(word, emotion)
+
+# --- Provjera Učitanih Leksikona (opcionalno) ---
+# print("Primjer CroSentilex-Full:")
+# print(head(crosentilex_full))
+# print("Primjer CroSentilex-Gold Prepared:")
+# print(head(crosentilex_gold_prepared))
+# print("Primjer NRC Long:")
+# print(head(nrc_lexicon_long))
+```
+
+
+
+
+
+
+
+```{r figure=TRUE, fig.width=12, fig.height=10, warning=FALSE, message=FALSE}
+# --- MODUL ZA MREŽU NARATIVNE ATMOSFERE (ISPRAVLJENA I POBOLJŠANA VERZIJA) ---
+library(widyr)
+library(ggraph)
+library(igraph)
+library(textreg)
+
+
+# 1. KORAK: Izračun frekvencija riječi iz 'nlp_results_df'
+lemmatized_words_with_freq <- nlp_results_df %>%
+  # Brojimo koliko se puta svaka lema pojavljuje u svakom dokumentu
+  count(doc_id, lemma, name = "word_frequency")
+
+# 2. KORAK: Izračun Sentiment Score-a (CroSentilex-Gold)
+document_sentiments_gold <- lemmatized_words_with_freq %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  mutate(
+    sentiment_value = as.numeric(sentiment_value),
+    word_frequency = as.numeric(word_frequency)
+  ) %>%
+  group_by(doc_id) %>%
+  summarise(sentiment_score_gold = sum(sentiment_value * word_frequency, na.rm = TRUE)) %>%
+  ungroup()
+
+
+# 3. KORAK: Izračun Indeksa Konfliktnog Jezika (CLI)
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c("laž", "skandal", "napad", "radikalan", "ideologija", "licemjerje", "sramotno", "mržnja", "podjela", "raskol", "manipulacija", "propaganda", "ekstrem", "kontroverz", "sukob", "kriza")
+))
+
+cli_scores <- lemmatized_words_with_freq %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    total_words = sum(word_frequency),
+    conflict_words = sum(word_frequency[is_conflict])
+  ) %>%
+  mutate(cli = (conflict_words / total_words) * 1000) %>%
+  ungroup()
+
+# 4. KORAK: Spajanje SVIH metrika u jedan 'dta_final' dataframe
+dta_final <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(cli_scores %>% select(doc_id, cli), by = "doc_id") %>%
+  mutate(
+    sentiment_score_gold = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    cli = ifelse(is.na(cli), 0, cli)
+  )
+
+
+# 5. KORAK: Izračun Relativnog Indeksa Konflikta (RCI)
+avg_cli_media <- dta_final %>% group_by(Medij) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_final %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_final <- dta_final %>%
+  left_join(avg_cli_media, by = "Medij") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+
+
+# --- ANALIZA MREŽE NARATIVNE ATMOSFERE ---
+
+# 6. KORAK: Identifikacija dokumenata s više tema
+mixed_topic_docs <- dta_final %>%
+  select(doc_id, starts_with("norm_")) %>%
+  pivot_longer(-doc_id, names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 1.5) %>%
+  add_count(doc_id) %>%
+  filter(n >= 2) %>%
+  select(doc_id, topic)
+
+# 7. KORAK: Izoliranje atmosfere za relevantne dokumente
+atmosphere_of_mixed_docs <- dta_final %>%
+  filter(doc_id %in% unique(mixed_topic_docs$doc_id)) %>%
+  select(doc_id, sentiment_score = sentiment_score_gold, rci)
+
+# 8. KORAK: Efikasno računanje ko-okurencija i atmosfere parova
+pair_data <- mixed_topic_docs %>%
+  inner_join(atmosphere_of_mixed_docs, by = "doc_id")
+
+narrative_pairs <- pair_data %>%
+  pairwise_count(item = topic, feature = doc_id, upper = FALSE)
+
+
+# document_topic_pairs <- pair_data %>%
+#   # Stvaramo parove unutar svakog dokumenta
+#   pairwise_count(item = topic, feature = doc_id, upper = FALSE) %>%
+#   # Spajamo s originalnim podacima da bismo dobili atmosferu za svaki DOKUMENT u kojem se par pojavio
+#   inner_join(atmosphere_of_mixed_docs, by = c("feature" = "doc_id"))
+
+
+narrative_pair_data <- dta_final %>%
+  # Odabiremo samo potrebne stupce
+  select(doc_id, sentiment_score_gold, rci, starts_with("norm_")) %>%
+  # Pretvaramo u dugi format
+  pivot_longer(
+    cols = starts_with("norm_"),
+    names_to = "topic",
+    values_to = "intensity"
+  ) %>%
+  # Uklanjamo prefiks 'norm_'
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  # Zadržavamo samo jake teme
+  filter(intensity > 1.5) %>%
+  # KLJUČNI DIO: Spajamo dataframe sam sa sobom da stvorimo parove
+  inner_join(., ., by = "doc_id") %>%
+  # Zadržavamo samo jedinstvene parove (npr. izbjegavamo A-B i B-A)
+  filter(topic.x < topic.y) %>%
+  # Sada imamo dataframe gdje svaki redak predstavlja par tema u jednom dokumentu
+  # i imamo atmosferu tog dokumenta
+  select(doc_id, 
+         item1 = topic.x, 
+         item2 = topic.y, 
+         sentiment_score = sentiment_score_gold.x, # .x jer su se imena duplicirala
+         rci = rci.x)
+
+
+graph_data <- narrative_pair_data %>%
+  group_by(item1, item2) %>%
+  summarise(
+    n = n(), # Brojimo koliko se puta par pojavio
+    avg_sentiment = mean(sentiment_score, na.rm = TRUE),
+    avg_rci = mean(rci, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  filter(n > 10) # Zadržavamo samo parove s dovoljno članaka
+
+
+
+set.seed(123)
+graph_from_data_frame(graph_data, directed = FALSE) %>%
+  ggraph(layout = "fr") +
+    geom_edge_fan(
+      aes(
+        color = avg_sentiment, 
+        width = avg_rci,
+        alpha = n
+      ), 
+      arrow = NULL
+    ) +
+    geom_node_point(color = "black", size = 10) +
+    geom_node_text(aes(label = str_wrap(name, 15)), color = "black", size = 3.5) +
+    scale_edge_color_gradient2(
+      low = "firebrick", mid = "lightgrey", high = "steelblue", midpoint = 0, 
+      name="Prosj. sentiment\nnarativnog okvira"
+    ) +
+    scale_edge_width(
+      range = c(1, 4), 
+      name="Prosj. intenzitet konflikta (RCI)"
+    ) +
+    scale_edge_alpha(
+      range = c(0.3, 1),
+      name = "Broj članaka\n(Pouzdanost veze)"
+    ) +
+    theme_graph(base_family = "sans") +
+    labs(
+      title = "Mreža narativne atmosfere",
+      subtitle = "Boja veze = tonalitet | Debljina veze = konflikt | Prozirnost veze = oouzdanost"
+    )
+
+
+
+
+
+```
+
+
+```{r anomaly-detection, eval= T, message=FALSE, warning=FALSE}
+# --- KOD ZA DETEKCIJU ANOMALIJA (POBOLJŠANA VERZIJA) ---
+daily_summary <- dta_final %>%
+  mutate(date = as.Date(DATE)) %>%
+  group_by(date) %>%
+  summarise(
+    n_articles = n(),
+    avg_cli = mean(cli, na.rm = TRUE)
+  ) %>%
+  ungroup()
+
+# Računamo pragove (99-i percentil)
+volume_threshold <- quantile(daily_summary$n_articles, 0.97)
+cli_threshold <- quantile(daily_summary$avg_cli, 0.97)
+
+# Identificiramo "potrese"
+spikes_detected <- daily_summary %>%
+  mutate(
+    is_volume_spike = n_articles > volume_threshold,
+    is_cli_spike = avg_cli > cli_threshold
+  )
+
+# Vizualizacija
+p_volume <- ggplot(spikes_detected, aes(x = date, y = n_articles)) +
+  geom_line(color = "grey") +
+  geom_point(data = filter(spikes_detected, is_volume_spike), color = "red", size = 3) +
+  geom_hline(yintercept = volume_threshold, linetype="dashed", color="red") +
+  theme_minimal() +
+  labs(title = "Ekstremni volumen objava", y = "Broj članaka dnevno", x = "")
+
+p_cli <- ggplot(spikes_detected, aes(x = date, y = avg_cli)) +
+  geom_line(color = "grey") +
+  geom_point(data = filter(spikes_detected, is_cli_spike), color = "red", size = 3) +
+  geom_hline(yintercept = cli_threshold, linetype="dashed", color="red") +
+  theme_minimal() +
+  labs(title = "Ekstremni intenzitet konflikta", y = "Prosječni CLI dnevno", x = "Datum")
+
+
+```
+
+
+
+```{r standardized-anomaly-detection}
+# --- KOD ZA STANDARDIZIRANU DETEKCIJU ANOMALIJA ---
+
+# Agregiramo podatke po danu
+daily_summary <- dta_final %>%
+  mutate(date = as.Date(DATE),
+         year = year(date)) %>% # Dodajemo godinu za godišnju standardizaciju
+  group_by(date, year) %>%
+  summarise(
+    n_articles = n(),
+    avg_cli = mean(cli, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Standardiziramo vrijednosti (računamo Z-score) unutar svake godine
+standardized_summary <- daily_summary %>%
+  group_by(year) %>%
+  mutate(
+    # Z-score = (vrijednost - prosjek) / standardna devijacija
+    z_score_volume = (n_articles - mean(n_articles)) / sd(n_articles),
+    z_score_cli = (avg_cli - mean(avg_cli)) / sd(avg_cli)
+  ) %>%
+  ungroup()
+
+# Definiramo prag za "šiljak" (npr. 3 standardne devijacije)
+spike_threshold_z <- 3
+
+# Identificiramo "potrese"
+spikes_detected_z <- standardized_summary %>%
+  mutate(
+    is_volume_spike = z_score_volume > spike_threshold_z,
+    is_cli_spike = z_score_cli > spike_threshold_z
+  )
+
+# --- ISPIS DATUMA S ANOMALIJAMA ---
+volume_spike_dates <- spikes_detected_z %>%
+  filter(is_volume_spike) %>%
+  select(date, n_articles, z_score_volume) %>%
+  arrange(desc(z_score_volume))
+
+cli_spike_dates <- spikes_detected_z %>%
+  filter(is_cli_spike) %>%
+  select(date, avg_cli, z_score_cli) %>%
+  arrange(desc(z_score_cli))
+
+# # (Ovaj dio ispod će ispisati tablice direktno u vaš HTML dokument)
+# cat("### Dani s Ekstremnim Volumom Objava\n\n")
+# knitr::kable(volume_spike_dates, caption = "Top datumi rangirani po Z-scoreu volumena.")
+# 
+# cat("\n### Dani s Ekstremnim Intenzitetom Konflikta\n\n")
+# knitr::kable(cli_spike_dates, caption = "Top datumi rangirani po Z-scoreu konflikta.")
+
+
+# --- VIZUALIZACIJA STANDARDIZIRANIH VRIJEDNOSTI ---
+p_volume_z <- ggplot(spikes_detected_z, aes(x = date, y = z_score_volume)) +
+  geom_line(color = "grey") +
+  geom_point(data = filter(spikes_detected_z, is_volume_spike), color = "red", size = 3) +
+  geom_hline(yintercept = spike_threshold_z, linetype = "dashed", color = "red") +
+  theme_minimal() +
+  labs(
+    title = "Anomalije u volumenu objava (Standardizirano)",
+    y = "Odstupanje od prosjeka (u st. dev.)",
+    x = ""
+  )
+
+p_cli_z <- ggplot(spikes_detected_z, aes(x = date, y = z_score_cli)) +
+  geom_line(color = "grey") +
+  geom_point(data = filter(spikes_detected_z, is_cli_spike), color = "red", size = 3) +
+  geom_hline(yintercept = spike_threshold_z, linetype = "dashed", color = "red") +
+  theme_minimal() +
+  labs(
+    title = "Anomalije u intenzitetu konflikta (Standardizirano)",
+    y = "Odstupanje od prosjeka (u st. dev.)",
+    x = "Datum"
+  )
+
+
+```
+
+
+
+```{r}
+p_volume_z
+```
+
+
+
+```{r}
+p_cli_z
+```
 
 
 
