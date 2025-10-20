@@ -14,9 +14,45 @@ library(cli)
 dta <- readRDS("D:/LUKA/HNB/HNB_Media_Map/hnb.rds") %>%
   mutate(doc_id = row_number())
 
+
+
+file_path <- "C:/Users/lukas/Determbaza/PresscutHNB/HNB 8 2025 puni sadržaj.xlsx"
+tryCatch({
+  # Koristimo read_excel za učitavanje
+  df <- read_excel(file_path, sheet = "Popis")
+}, error = function(e) {
+  # Ako list 'Popis' ne postoji, pokušaj učitati prvi list
+  message("List 'Popis' nije pronađen, pokušavam učitati prvi list...")
+  tryCatch({
+    df <<- read_excel(file_path, sheet = 1)
+  }, error = function(e2) {
+    stop(paste("Nije moguće učitati Excel datoteku:", e2))
+  })
+})
+
+df <- df %>%
+  rename(
+    FULL_TEXT = `Puni sadržaj`,
+    DATE = `Datum izdanja`,
+    SOURCE_TYPE = `Vrsta medija`
+    # Ovdje bi se mogli preimenovati i ostali stupci da su potrebni
+  ) %>%
+  mutate(
+    DATE = as.Date(DATE), # Osiguravamo da je Date objekt
+    year = as.integer(format(DATE, "%Y"))
+  ) %>%
+  filter(SOURCE_TYPE != "tiktok") %>% # Filter iz vašeg koda
+  mutate(doc_id = row_number())
+
+
 output_dir = "D:/Luka/HNB/Language model sample"
 
-dta_sample <- dta %>%
+
+output_dir ="C:/Users/lukas/Determbaza/Language model sample II"
+
+
+
+dta_sample <- df %>%
   mutate(doc_id = row_number()) %>%
   filter(nchar(FULL_TEXT) > 10) %>%
   slice_sample(n = 1000)
@@ -121,7 +157,7 @@ final_annotated_data <- udpipe_annotate_in_batches_and_save(
   model = ud_model_hr,
   batch_size = 500,
   cores = parallel::detectCores() - 1,
-  output_dir = "D:/Luka/HNB/Language model sample",
+  output_dir = "C:/Users/lukas/Determbaza/Language model sample II",
   resume = TRUE
 )
 

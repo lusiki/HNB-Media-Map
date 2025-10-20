@@ -2452,6 +2452,498 @@ tryCatch({
 ```
 
 
+
+
+```{r}
+library(readr)
+library(dplyr)
+library(lubridate)
+library(purrr)
+library(stringr)
+
+
+# Preimenujemo stupce iz CSV-a da odgovaraju kodu iz prezentacije
+dta <- df %>%
+  rename(
+    FULL_TEXT = `Puni sadržaj`,
+    DATE = `Datum izdanja`,
+    SOURCE_TYPE = `Vrsta medija`
+    # Ovdje bi se mogli preimenovati i ostali stupci da su potrebni
+  ) %>%
+  mutate(
+    DATE = as.Date(DATE), # Osiguravamo da je Date objekt
+    year = as.integer(format(DATE, "%Y"))
+  ) %>%
+  filter(SOURCE_TYPE != "tiktok") %>% # Filter iz vašeg koda
+  mutate(doc_id = row_number())
+
+date_range <- range(dta$DATE, na.rm = TRUE)
+message(paste("CSV podaci učitani. Raspon datuma:", date_range[1], "do", date_range[2]))
+message("NAPOMENA: Originalni filter (2021-2023) je uklonjen da bi se mogli analizirati podaci iz 2025.")
+
+
+# --- 3. Učitavanje NLP podataka (Preskočeno) ---
+message("--- UPOZORENJE: Preskačem učitavanje 'nlp_results_df' ---")
+message("Nemam pristup lokalnoj putanji 'D:/LUKA/HNB/Language model sample'.")
+# files <- list.files("D:/LUKA/HNB/Language model sample", ...)
+# nlp_results_df <- ...
+
+
+# --- 4. Definicija tematskih rječnika (iz vašeg koda) ---
+message("--- Učitavam rječnike tema i aktera... ---")
+
+# Definicija tematskih rječnika v3
+thematic_dictionaries_v3 <- list(
+  MONETARNA_POLITIKA_I_INFLACIJA = sort(c(
+    "agregat", "cijen", "ciljan", "deflacij", "dezinflacij", "eskontn", 
+    "ekspanzivn", "hro", "inflacij", "kamatn", "kamatna stopa", "kreditni plasmani", 
+    "likvidnost", "mas", "monetarn", "novčan", "obvezna pričuva", "otvoreno tržište",
+    "ponud", "potražnj", "referentn", "repo", "restriktivn", "stabilnost cijena", 
+    "stop", "transmisijsk"
+  )),
+  FINANCIJSKA_STABILNOST_I_NADZOR_BANAKA = sort(c(
+    "adekvatnost kapitala", "aml", "bank", "basel", "bonitet", "depozit", "financijsk", 
+    "hanfa", "institucij", "kapitalni zahtjev", "kreditn", "leasing", "likvidacij",
+    "loš kredit", "makrobonitetn", "nadzor", "nenaplativ", "npl", "osiguranje", 
+    "osiguranje depozita", "regulacij", "rizik", "sanacij", "sistemsk",
+    "sprečavanje pranja novca", "stabilnost", "stečaj", "stres test", "supervizij"
+  )),
+  UVODJENJE_EURA_I_TECAJ = sort(c(
+    "aprecijacij", "cent", "deprecijacij", "devizn", "devizni tečaj", "dvostruki optjecaj", 
+    "erm ii", "eur", "eurozon", "eurosustav", "fiksni tečaj", "konverzij", "kovnica novca",
+    "kuna", "lipa", "prilagodb", "tečaj", "uvođenj", "zamjen", "zaokruživanj"
+  )),
+  MAKROEKONOMSKE_ANALIZE_I_PROGNOZE = sort(c(
+    "analiz", "bdp", "bilten", "dug", "ekonomsk", "fiskaln", "gospodarsk", 
+    "industrijska proizvodnja", "investicij", "izvoz", "izvješć", "javni dug", 
+    "konkurentnost", "kretanj", "makroekonomsk", "nezaposlenost", "očekivanj", 
+    "potrošnj", "prognoz", "projekcij", "rast", "recesij", "uvoz", "zaposlenost"
+  )),
+  UPRAVLJANJE_I_TRANSPARENTNOST_HNB = sort(c(
+    "devizne pričuve", "dobit", "guverner", "gubitak", "hnb", "izvješće saboru", 
+    "mandat", "neovisnost", "odluk", "pričuv", "proračun hnb", "revizij", "savjet hnb",
+    "sjednic", "statut", "transparentnost", "viceguverner", "zakon o hnb", "zlato", 
+    "zlatne rezerve"
+  )),
+  PLATNI_PROMET_I_GOTOVINA = sort(c(
+    "beskontaktn", "cbdc", "digitalna valuta", "digitalni euro", "digitalni novac", 
+    "fintech", "gotovin", "gotovinsk", "kartic", "kovanic", "kriptovalut", "nks", 
+    "novčanic", "platni promet", "target2", "transakcij"
+  )),
+  MEDJUNARODNI_ODNOSI_I_EU = sort(c(
+    "banka za međunarodne namire", "bis", "članstv", "ebrd", "ecb", "esb", 
+    "europska komisija", "europska središnja banka", "europsk", "fitch", "imf", 
+    "kreditni rejting", "mmf", "moody's", "s&p", "suradnj", "svjetska banka"
+  )),
+  JAVNA_PERCEPCIJA_I_KRITIKE = sort(c(
+    "afer", "dužnic", "etika", "franak", "klub", "kritik", "netransparentnost",
+    "odgovornost", "plać", "polemik", "potrošač", "povjerenj", "presud", "skandal",
+    "sukob interesa", "švicarac", "troškov", "tužb", "udruga franak", "zaštita potrošača"
+  ))
+)
+
+# Definicija rječnika aktera
+hnb_duznosnici_dict <- list(HNB_DUZNOSNICI = c("boris vujčić", "vujčić", "sandra švaljek", "švaljek", "tomislav ćorić", "ćorić", "michael faulend", "faulend", "bojan fras", "fras", "ivana jakir-bajo", "martina jakir-bajo", "jakir-bajo", "jakir", "maroje lang", "lang", "roman šubić", "šubić", "slavko tešija", "tešija", "martina drvar", "drvar", "željko rohatinski", "rohatinski", "marko škreb", "škreb", "evan kraft", "kraft"))
+politicki_akteri_dict <- list(POLITICKI_AKTERI = c("andrej plenković", "plenković", "zoran milanović", "milanović", "davor škrlec", "škrlec"))
+analiticari_i_mediji_dict <- list(ANALITICARI_I_MEDIJI = c("velimir šonje", "šonje", "ljubo jurčić", "jurčić", "ivo družić", "družić", "marina klepo", "klepo", "boris pavković", "pavković"))
+financijske_institucije_dict <- list(FINANCIJSKE_INSTITUCIJE = c("ante žigman", "žigman", "ante matek", "matek", "tamara perko", "perko", "zdenko rogić", "rogić", "miroslav gržetić", "gržetić"))
+medjunarodni_duznosnici_dict <- list(MEDJUNARODNI_DUZNOSNICI = c("christine lagarde", "lagarde", "mario draghi", "draghi", "jan kees martijn", "martijn", "hans-jörg rudloff", "rudloff"))
+sindikati_i_drugi_dict <- list(SINDIKATI_I_DRUGI = c("krešimir sever", "sever", "mladen novosel", "novosel"))
+
+svi_ljudi_dictionary <- c(
+  hnb_duznosnici_dict,
+  politicki_akteri_dict,
+  analiticari_i_mediji_dict,
+  financijske_institucije_dict,
+  medjunarodni_duznosnici_dict,
+  sindikati_i_drugi_dict
+)
+
+
+# --- 5. Definicija funkcije (iz vašeg koda) ---
+calculate_theme_scores <- function(text, dictionaries) {
+  text_lower <- tolower(text)
+  total_words <- str_count(text_lower, "\\w+")
+  if (total_words == 0) return(NULL)
+  scores <- purrr::map(dictionaries, ~sum(str_count(text_lower, .x)))
+  normalized_scores <- purrr::map(scores, ~(.x / total_words) * 1000)
+  names(normalized_scores) <- paste0("norm_", names(scores))
+  scores_vec <- unlist(scores)
+  if(all(scores_vec == 0)){
+    dominant_topic <- "Nema Teme"
+  } else {
+    dominant_topic <- names(scores)[which.max(scores_vec)]
+  }
+  return(c(as.list(scores), as.list(normalized_scores), dominant_topic = dominant_topic))
+}
+
+# --- 6. Izvršavanje analize ---
+if("FULL_TEXT" %in% names(dta) && nrow(dta) > 0) {
+  message("--- 6a. Pokrećem analizu glavnih tema (thematic_dictionaries_v3)... ---")
+  theme_analysis_data <- purrr::map_dfr(dta$FULL_TEXT, ~calculate_theme_scores(., thematic_dictionaries_v3))
+  dta_enriched <- bind_cols(dta, theme_analysis_data)
+  message("...završeno. Kreiran 'dta_enriched'.")
+  
+  message("--- 6b. Pokrećem analizu aktera (svi_ljudi_dictionary)... ---")
+  people_analysis_data <- purrr::map_dfr(dta$FULL_TEXT, ~calculate_theme_scores(., svi_ljudi_dictionary))
+  # Kreiramo poseban dataframe za ljude da se ne miješa s dta_enriched
+  dta_enriched_people <- bind_cols(dta, people_analysis_data) 
+  message("...završeno. Kreiran 'dta_enriched_people'.")
+
+  message("\n--- Analiza uspješna! ---")
+  message("Prikazujem pregled NOVIH programatskih tema vs. STARIH tema iz CSV-a:")
+  print(dta_enriched %>% 
+        select(doc_id, 
+               Tema, # Stari stupac iz CSV-a
+               dominant_topic # Novi stupac iz R koda
+               ) %>% 
+        head())
+        
+  message("\nPrikazujem pregled NOVIH programatskih aktera vs. STARIH autora iz CSV-a:")
+  print(dta_enriched_people %>% 
+        select(doc_id, 
+               Autor, # Stari stupac iz CSV-a
+               dominant_topic # Novi stupac (akter) iz R koda
+               ) %>% 
+        head())
+
+} else {
+   if(nrow(dta) == 0) {
+      message("Greška: Nema podataka za analizu (vjerojatno zbog filtriranja).")
+   } else {
+      message("GREŠKA: Stupac 'FULL_TEXT' (originalno 'Puni sadržaj') nije pronađen.")
+   }
+}
+
+theme_analysis_data <- purrr::map_dfr(dta$FULL_TEXT, ~calculate_theme_scores(., thematic_dictionaries_v3))
+dta_enriched <- bind_cols(dta, theme_analysis_data)
+dta_with_themes <- bind_cols(dta, theme_analysis_data)
+
+theme_analysis_data2 <- purrr::map_dfr(dta$FULL_TEXT, ~calculate_theme_scores(., svi_ljudi_dictionary))
+dta_enriched2 <- bind_cols(dta, theme_analysis_data2)
+dta_with_themes2 <- bind_cols(dta, theme_analysis_data2)
+
+
+```
+
+
+```{r}
+files <- list.files("C:/Users/lukas/Determbaza/Language model sample II", full.names = TRUE, pattern = "\\.rds")
+nlp_results_df <- lapply(files, readRDS) %>%
+  bind_rows() %>%
+  mutate(doc_id = as.integer(doc_id))
+
+```
+
+
+
+```{r plot-wordcloud, fig.height=8, fig.width=12}
+# 1. Priprema teksta: Lematizacija i uklanjanje zaustavnih riječi
+# Učitajmo standardne hrvatske zaustavne riječi (možete ih naći online ili napraviti svoju listu)
+stop_words_hr <- tibble(word = c(
+  # Originalna lista
+  "i", "u", "je", "na", "se", "su", "s", "za", "od", "o", "a", "te", "koji", "koja", "koje", "ga", "mu", "joj", "smo", "kao",
+
+  # Prijedlozi (Prepositions)
+  "bez", "blizu", "do", "duž", "ispred", "iza", "između", "iznad", "izvan", "k", "kod", "kraj", "mimo", "na", "nad", "nakon", "niže", "o", "od", "oko", "osim", "po", "pod", "pokraj", "poput", "pored", "poslije", "povrh", "preko", "prema", "pri", "prije", "protiv", "put", "radi", "s", "sa", "skupa", "tijekom", "u", "unatoč", "unutar", "usprkos", "uz", "van", "više", "zaradi", "zbog",
+
+  # Veznici (Conjunctions)
+  "a", "ali", "ama", "bilo", "da", "dakle", "dok", "eda", "i", "ili", "inače", "jer", "kad", "kako", "li", "makar", "mada", "nego", "negoli", "no", "pa", "pak", "premda", "samo", "što", "te", "ter", "već", "zatim", "zato",
+
+  # Zamjenice (Pronouns)
+  "ja", "ti", "on", "ona", "ono", "mi", "vi", "oni", "one", "ona", "sebe", "svoj", "moj", "tvoj", "njegov", "njezin", "naš", "vaš", "njihov", "ovaj", "ova", "ovo", "taj", "ta", "to", "onaj", "ona", "ono", "koji", "koja", "koje", "čiji", "čija", "čije", "kakav", "kakva", "kakvo", "kolik", "kolika", "koliko", "tko", "što", "nitko", "ništa", "itko", "išta", "svatko", "svašta", "netko", "nešto", "svakakav", "nikakav", "ikakav", "nekakav",
+
+  # Čestice (Particles)
+  "da", "ne", "li", "zar", "čak", "dapače", "evo", "eto", "eno", "gle", "god", "pak", "samo", "valjda", "vjerojatno", "zaista",
+
+  # Prilozi (Adverbs)
+  "gdje", "kamo", "kuda", "otkud", "odakle", "dokle", "ovdje", "ondje", "onamo", "ovamo", "ovuda", "onuda", "tada", "sada", "onda", "nikada", "nekada", "ponekad", "često", "rijetko", "uvijek", "stalno", "povremeno", "danas", "sutra", "jučer", "preksutra", "prekjučer", "lani", "zimus", "ljetos", "proljetos", "jesenas", "kako", "tako", "nikako", "nekako", "ovako", "onako", "zašto", "zato", "stoga", "koliko", "toliko", "ovoliko", "onoliko", "malo", "puno", "mnogo", "više", "manje", "najviše", "najmanje", "brzo", "sporo", "dobro", "loše", "jako", "slabo", "vrlo", "prilično", "sasvim", "gotovo", "jedva",
+
+  # Pomoćni glagoli (Auxiliary Verbs)
+  "biti", "jesam", "jesi", "jest", "jesmo", "jeste", "jesu", "bih", "bi", "bismo", "biste", "biše", "ću", "ćeš", "će", "ćemo", "ćete", "hoću", "hoćeš", "hoće", "hoćemo", "hoćete", "htjeti", "imam", "imaš", "ima", "imamo", "imate", "imaju", "imati", "nemam", "nemaš", "nema", "nemamo", "nemate", "nemaju", "nemati",
+
+  # Česti glagoli (Common Verbs)
+  "ići", "doći", "otići", "reći", "kazati", "govoriti", "pitati", "odgovoriti", "vidjeti", "gledati", "znati", "misliti", "moći", "morati", "trebati", "željeti", "htjeti", "dati", "uzeti", "napraviti", "raditi", "živjeti", "umrijeti", "roditi", "stajati", "sjediti", "ležati", "postati", "ostati", "nalaziti",
+
+  # Česte imenice (Common Nouns)
+  "stvar", "dio", "godina", "dan", "vrijeme", "čovjek", "ljudi", "žena", "muškarac", "dijete", "život", "svijet", "zemlja", "grad", "kuća", "posao", "ruka", "noga", "oko", "glava", "srce", "broj", "primjer", "način", "pitanje", "odgovor", "početak", "kraj", "strana", "slučaj",
+
+  # Česti pridjevi (Common Adjectives)
+  "velik", "malen", "dobar", "loš", "nov", "star", "lijep", "ružan", "visok", "nizak", "mlad", "star", "jak", "slab", "brz", "spor", "topao", "hladan", "pun", "prazan", "lak", "težak", "isti", "drugi", "različit", "jednostavan", "složen", "moguć", "nemoguć", "poznat", "nepoznat", "pravi", "krivi",
+
+  # Česte imenice (Common Verbs)
+  "godina", "moći"
+  
+  
+))
+
+# Naša inovacija: Prilagođena lista religijskih zaustavnih riječi
+custom_stop_words <- tibble(word = c(
+  # Originalna lista
+  "bog", "isus", "gospodin", "moliti", "molitva", "amen",
+
+  # Kršćanstvo (Christianity) - Općenito
+  "krist", "biblija", "sveto pismo", "evanđelje", "crkva", "vjera", "vjernik", "grijeh", "pokajanje", "spasenje", "uskrsnuće", "krštenje", "euharistija", "sakrament", "apostol", "prorok", "svetac", "anđeo", "đavao", "sotona", "raj", "pakao", "čistilište", "milost", "blagoslov", "žrtva", "otkupljenje", "trojstvo", "duh sveti", "gospa", "djevica marija", "molitva", "post", "hodočašće", "župa", "župnik", "biskup", "kardinal", "papa", "pastir", "stado", "jaganjac božji",
+
+  # Katolicizam (Catholicism)
+  "katolički", "rimokatolički", "sveta stolica", "vatikan", "krunica", "misa", "ispovijed", "pričest", "krizma", "blaženi", "sveti", "nadbiskup", "opat", "časna sestra", "fratar", "svećenik", "kapelan", "celibat", "enciklika", "koncil",
+
+  # Pravoslavlje (Orthodoxy)
+  "pravoslavni", "patrijarh", "episkop", "mitropolit", "ikona", "ikonostas", "liturgija", "pričešće", "krst", "slava", "parohija", "paroh", "manastir", "iguman", "monah", "pravoslavlje",
+
+  # Protestantizam (Protestantism)
+  "protestantski", "evangelički", "reformacija", "luteran", "kalvinist", "baptist", "pentekostalac", "adventist", "pastor", "prezbiter", "đakon", "propovijed", "slavljenje",
+
+  # Islam
+  "islam", "musliman", "kur'an", "muhamed", "alah", "džamija", "minaret", "imam", "hodža", "efendija", "ramazan", "bajram", "hadž", "meka", "medina", "šerijat", "suniti", "šijiti", "džihad", "halal", "haram", "salat", "zekat", "šehadet",
+
+  # Judaizam (Judaism)
+  "judaizam", "židov", "tora", "talmud", "sinagoga", "rabin", "košer", "šabat", "pasha", "jom kipur", "roš hašana", "hanuka", "menora", "jahve", "adonaj",
+
+  # Budizam (Buddhism)
+  "budizam", "buda", "dharma", "sangha", "karma", "nirvana", "reinkarnacija", "meditacija", "zen", "dalaj lama", "sutre", "mantra", "stupa", "bodisatva",
+
+  # Hinduizam (Hinduism)
+  "hinduizam", "hindus", "vede", "upanišade", "bhagavad gita", "brahma", "višnu", "šiva", "krišna", "rama", "šakti", "ganeša", "guru", "svami", "ašram", "joga", "mokša", "samsara", "pudža",
+
+  # Opći religijski i duhovni pojmovi (General Religious and Spiritual Terms)
+  "religija", "duhovnost", "božanstvo", "božica", "mitologija", "obred", "ritual", "hram", "svetište", "oltar", "proročanstvo", "otkrivenje", "sudnji dan", "eshatologija", "teologija", "filozofija", "etika", "moral", "duša", "duh", "zagrobni život", "vječnost", "stvaranje", "stvoritelj", "prosvjetljenje", "spoznaja", "transcendencija", "imanencija", "sveto", "profano", "hereza", "sekta", "kult"
+))
+
+
+
+# Kombiniramo liste
+all_stop_words <- bind_rows(stop_words_hr, custom_stop_words)
+
+words_to_remove <- c("godina", "moći") # Dodajte ovdje svoje riječi
+
+word_freq_for_cloud <- nlp_results_df %>%
+  filter(upos %in% c("NOUN", "ADJ", "VERB")) %>%
+  filter(!lemma %in% stop_words_hr) %>% # Uklanjanje općih stop-riječi
+  filter(!lemma %in% words_to_remove) %>% # Uklanjanje vaših specifičnih riječi
+  count(lemma, sort = TRUE)
+
+
+
+
+# 2. Kreiranje vizualizacije s ggwordcloud
+#set.seed(123) # Za reproduktivnost izgleda oblaka
+wordcloud(
+  words = word_freq_for_cloud$lemma,    # Riječi
+  freq = word_freq_for_cloud$n,         # Frekvencije
+  min.freq = 50,                        # Prikazuj samo riječi koje se pojave bar 50 puta
+  max.words = 100,                      # Maksimalan broj riječi za prikaz
+  random.order = FALSE,                 # Najčešće riječi idu u centar
+  rot.per = 0.30,                       # Postotak riječi koje će biti rotirane
+  colors = brewer.pal(8, "Dark2")       # Paleta boja
+)
+
+# Dodajemo naslo
+
+```
+
+```{r}
+thematic_intensity_data2 <- dta_enriched2 %>%
+  select(starts_with("norm_")) %>%
+  pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 0)
+
+ggplot(thematic_intensity_data2, aes(x = intensity, y = fct_reorder(topic, intensity, .fun = median))) +
+  geom_density_ridges(scale = 2, fill = "#0072B2", color = "white", alpha = 0.8) +
+  scale_x_log10(breaks = c(1, 10, 100, 1000), labels = c("1", "10", "100", "1000")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribucija intenziteta tema",
+    subtitle = "Koliko su teme centralne za članke u kojima se pojavljuju?",
+    x = "Intenzitet teme (spominjanja na 1000 riječi, log skala)",
+    y = "Tema"
+  ) +
+  theme(panel.grid.major.y = element_blank())
+```
+
+
+
+```{r plot-topic-intensity}
+thematic_intensity_data <- dta_enriched %>%
+  select(starts_with("norm_")) %>%
+  pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 0)
+
+ggplot(thematic_intensity_data, aes(x = intensity, y = fct_reorder(topic, intensity, .fun = median))) +
+  geom_density_ridges(scale = 2, fill = "#0072B2", color = "white", alpha = 0.8) +
+  scale_x_log10(breaks = c(1, 10, 100, 1000), labels = c("1", "10", "100", "1000")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribucija intenziteta tema",
+    subtitle = "Koliko su teme centralne za članke u kojima se pojavljuju?",
+    x = "Intenzitet teme (spominjanja na 1000 riječi, log skala)",
+    y = "Tema"
+  ) +
+  theme(panel.grid.major.y = element_blank())
+```
+
+
+
+```{r}
+
+topic_palette <- c(
+  "#003366",  # Dark Blue
+  "#5B9BD5",  # Medium Blue
+  "#C00000",  # Accent Red
+  "#BF8F00",  # Accent Gold
+  "#005F56",  # Dark Green
+  "#A0522D",  # Muted Sienna
+  "#7F7F7F",  # Medium Grey
+  "#8A798C"   # Muted Mauve
+)
+
+
+
+engagement_by_topic <- dta_enriched %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic) %>%
+  summarise(
+    # --- IZMJENA: Koristimo Vrijednost_EUR ---
+    avg_vrijednost = mean(`Vrijednost €`, na.rm = TRUE), 
+    total_articles = n()
+  ) %>%
+  arrange(desc(avg_vrijednost))
+
+# --- 3. Crtanje grafikona (primijenjena tema i paleta) ---
+graf_teme_avg_vrijednost <- ggplot(engagement_by_topic, 
+       aes(x = avg_vrijednost, 
+           y = fct_reorder(dominant_topic, avg_vrijednost),
+           fill = dominant_topic)) + # Mapiramo fill na temu
+  
+  geom_col(width = 0.8) +
+  
+  # --- IZMJENA: Formatiramo labelu kao Euro ---
+  geom_text(aes(label = scales::comma(avg_vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",", accuracy = 1)), 
+            hjust = -0.05, 
+            size = 4) +
+            
+  # Proširujemo os da stane tekst
+  expand_limits(x = max(engagement_by_topic$avg_vrijednost, na.rm = TRUE) * 1.15) +
+  
+  # --- PRIMJENA PALETE ---
+  scale_fill_manual(values = topic_palette) +
+  
+  # --- PRIMJENA TEME ---
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Koje teme generiraju najviše prosječne vrijednosti (€)?",
+    subtitle = "Prosječna medijska vrijednost (€) po članku za svaku dominantnu temu",
+    x = "Prosječna vrijednost (€)", 
+    y = "Dominantna tema"
+  ) +
+  theme(
+    legend.position = "none",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+graf_teme_avg_vrijednost
+
+
+```
+
+```{r}
+engagement_by_topic2 <- dta_enriched_people %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic) %>%
+  summarise(
+    # --- IZMJENA: Koristimo Vrijednost_EUR ---
+    avg_vrijednost = mean(`Vrijednost €`, na.rm = TRUE),
+    total_articles = n()
+  ) %>%
+  arrange(desc(avg_vrijednost))
+
+# --- 3. Crtanje grafikona (primijenjena tema i paleta) ---
+graf_akteri_avg_vrijednost <- ggplot(engagement_by_topic2, 
+       aes(x = avg_vrijednost, 
+           y = fct_reorder(dominant_topic, avg_vrijednost),
+           fill = dominant_topic)) + # Mapiramo fill na aktera
+           
+  geom_col(width = 0.8) +
+  
+  # --- IZMJENA: Formatiramo labelu kao Euro ---
+  geom_text(aes(label = scales::comma(avg_vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",", accuracy = 1)), 
+            hjust = -0.05, 
+            size = 4) +
+            
+  expand_limits(x = max(engagement_by_topic2$avg_vrijednost, na.rm = TRUE) * 1.15) +
+  
+  # --- PRIMJENA PALETE ---
+  scale_fill_manual(values = topic_palette) +
+  
+  # --- PRIMJENA TEME ---
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Koji akteri generiraju najviše prosječne vrijednosti (€)?",
+    subtitle = "Prosječna medijska vrijednost (€) po članku za svakog dominantnog aktera",
+    x = "Prosječna vrijednost (€)", 
+    y = "Dominantni akter"
+  ) +
+  theme(
+    legend.position = "none",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+graf_akteri_avg_vrijednost
+
+
+
+```
+
+
+```{r plot-topic-network, fig.height=10}
+# Ovaj kod je iz vašeg RMD-a, samo ga prikazujemo ovdje.
+topic_pairs <- dta_enriched %>%
+  select(doc_id, starts_with("norm_")) %>%
+  pivot_longer(-doc_id, names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 0) %>%
+  pairwise_cor(item = topic, feature = doc_id, upper = FALSE)
+
+set.seed(123)
+topic_pairs %>%
+  filter(correlation > 0.1) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation), color = "lightblue") +
+  geom_node_point(color = "darkblue", size = 5) +
+  geom_node_text(aes(label = str_wrap(name, 20)), repel = TRUE, size = 4) +
+  theme_void() +
+  labs(
+    title = "Mreža povezanosti tema",
+    subtitle = "Koje se teme najčešće pojavljuju zajedno u istim člancima?",
+    edge_width = "Snaga veze (korelacija)",
+    edge_alpha = ""
+  )
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ```{r}
 df_clean <- df %>%
   # Pretvaramo 'Vrijednost €' u numeričku vrijednost.
