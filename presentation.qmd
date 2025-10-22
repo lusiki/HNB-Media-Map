@@ -305,21 +305,18 @@ desc_stats_table <- daily_data_per_platform %>%
   select(platforma, ukupno_aktivnih_dana, prosjek_dnevnih_objava, medijan_dnevnih_objava, varijabilnost_objava_sd, everything())
 
 # --- KORAK 3: Prikaz tablice ---
-kable(desc_stats_table, 
+kable(desc_stats_table,
       digits = 2,
       caption = "Dnevna deskriptivna statistika performansi po platformi"
 ) %>%
   kable_styling(
-    # 'responsive' opcija ponekad smeta scroll_box-u, pa je sigurnije maknuti je
-    bootstrap_options = c("striped", "hover", "condensed"), 
-    full_width = FALSE
+    # Maknuli smo 'full_width = FALSE'
+    # Također smo maknuli 'responsive' što je dobro za scroll_box
+    bootstrap_options = c("striped", "hover", "condensed")
   ) %>%
-  
-  # --- DODAJTE OVAJ DIO ---
-  # Omotava tablicu u "kutiju" koja se može skrolati
   scroll_box(
-    width = "100%",  # Neka kutija zauzme 100% širine
-    height = "400px" # Fiksna visina. Prilagodite visinu (npr. "500px")
+    width = "100%",  # Kontejner zauzima punu širinu
+    height = "400px" # Za vertikalni scroll ako treba
   )
 ```
 
@@ -4181,7 +4178,7 @@ graf_teme_po_sentimentu
 
 ## Potrebni resursi
 
-Ovaj projekt je dizajniran da bude agilan i visoko kolaborativan.
+Projekt mora biti agilan i visoko kolaborativan.
 
 #### Tim
 -   1-2 podatkovna znanstvenika / ekonomista.
@@ -4210,11 +4207,11 @@ Ovaj projekt je dizajniran da bude agilan i visoko kolaborativan.
 -   [HNB osobe](https://raw.githack.com/lusiki/HNB-Media-Map/main/Imena.html)(*u razvoju*)
 -   [Teme](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme2.html)(*u razvoju*)
 <br>
-
 **Kontakt:**
 <br>
 -   [Luka Šikić](https://www.unicath.hr/odjeli-i-fakultet/nastavnici/luka-sikic)
 <br>
 -   [linkedin](https://www.linkedin.com/in/luka-sikic-662ba869/)
+<br>
 -   luka.sikic@unicath.hr
 
