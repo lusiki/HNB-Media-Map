@@ -12,8 +12,8 @@ Istraživanje se sastoji od četiri tematska izvješća koja su međusobno povez
 
 ## Podatci i metodologija
 Analiza predstavlja dio šireg projekta mapiranja medijskog prostora ključnih hrvatskih institucija.
-Izvor podataka je baza podataka s preko 25 milijuna medijskih objava (populacija objava u digitalnom medijskom prostoru RH) iz koje su identificirani sve objave koje spominju HNB (~20k) .
-Vremenski okvir za analizu je razdoblje  2021.–06/2024. godina.Primijenjene metode analize kombiniraju mrežne analize, obrade prirodnog jezika (NLP), tematskog modeliranja i analize sentimenta
+Izvor podataka je baza podataka s preko 25 milijuna medijskih objava (populacija objava u digitalnom medijskom prostoru RH) iz koje su identificirani sve objave koje spominju HNB (~20k).
+Vremenski okvir za analizu je razdoblje  2021.–06/2024. godina. Primijenjene metode analize kombiniraju mrežne analize, obrade prirodnog jezika (NLP), tematskog modeliranja i analize sentimenta.
     
 ## Prezentacija
 
@@ -21,11 +21,11 @@ Sažeti prikaz rezultata i prijedlog sustava za praćenje medijskog prostora HNB
 
 ## Struktura istraživanja
 
-Ovdje možete pristupiti svakoj od četiri faze istraživanja.
+Ovdje možete pristupiti svakome od četiri istraživanja.
 
 ### Faza 1: [Mapa medijskog ekosustava](https://raw.githack.com/lusiki/HNB-Media-Map/main/Mapa.html)
 
-Odgovara na pitanja TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. Analizira ključne aktere — od dužnosnika i političara do neovisnih analitičara — te identificira dominantne platforme i dinamiku njihovog utjecaja na javni diskurs.
+Odgovara na pitanja TKO u javnosti govori o HNB-u i GDJE se ta rasprava odvija. Analizira ključne aktere, od dužnosnika i političara do neovisnih analitičara, te identificira dominantne platforme i dinamiku njihovog utjecaja na javni diskurs.
 
 ### Faza 2: [Anatomija diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme.html)
 
@@ -37,18 +37,19 @@ Analizira KAKO se o HNB-u govori. Mjeri emocionalni ton rasprave (stručan, krit
 
 ### Faza 4: [Digitalni odjeci](https://raw.githack.com/lusiki/HNB-Media-Map/main/Događaji.html)
 
-Proučava KADA i ZAŠTO se diskurs o HNB-u intenzivira. Modelira kako ključni događaji — poput promjene kamatnih stopa, objave ekonomskih prognoza ili uvođenja eura — utječu na volumen, atmosferu i tematski fokus online rasprava.
+Proučava KADA i ZAŠTO se diskurs o HNB-u intenzivira. Modelira kako ključni događaji, poput promjene kamatnih stopa, objave ekonomskih prognoza ili uvođenja eura, utječu na volumen, atmosferu i tematski fokus online rasprava.
 
 
 ##
 
-Svako izvješće je interaktivno i omogućuje detaljno istraživanje podataka, pružajući korisnicima mogućnost samostalnog analiziranja medijskog diskursa o Hrvatskoj središnjoj banci.
 
 
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------
-(.beta;in developement)
+(*.beta;in developement*)
+<br>
 [Imena](https://raw.githack.com/lusiki/HNB-Media-Map/main/Imena.html)
+<br>
 [Teme2](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme2.html)
 ----------------------------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------------------------

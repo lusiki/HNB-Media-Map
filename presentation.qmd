@@ -1,6 +1,6 @@
 ---
-title: "Relevantnost digitalnog medijskog prostora (podataka) za HNB"
-subtitle: "Prijedlog ustava za medijsko praćenje u realnom vremenu"
+title: "HNB u digitalnom medijskom prostoru (podatcima)"
+subtitle: "Prijedlog sustava za medijsko praćenje (u realnom vremenu)"
 author: "Luka Sikic, PhD"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 format: 
@@ -74,7 +74,7 @@ platform_color_mapping <- c(
 
 ## Kontekst
 
-- > **Digitalni medijski prostor u RH:** [Definiraju](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/01-kontekst.html) ga politička ekonomija digitalnog klika, prijeđeni put i algoritamska arhitektura javnog diskursa.
+- > **Digitalni medijski prostor u RH:** [Definiraju](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/01-kontekst.html) ga politička ekonomija digitalnog klika, razvojni put i algoritamska arhitektura javnog diskursa.
 
 - > **Komunikacija središnjih banaka:** Značajna promjena od [tajnovitosti do transparentnosti](https://www.youtube.com/watch?v=u453NZsw74w&list=PLt9jC4Ylzr6CMEcksfFf_DX7nw6Ox_YgH) (1980e do 2000e), preko [komunikacijske revolucije](https://www.ecb.europa.eu/pub/pdf/scpwps/ecbwp898.pdf) (1990e do ranih 2000ih), do [aktivnog angažmana](https://research.vu.nl/ws/portalfiles/portal/362043989/blinder-et-al-2024-central-bank-communication-with-the-general-public-promise-or-false-hope.pdf) u medijskom prostoru, posebno na [društvenim medijima](https://onlinelibrary.wiley.com/doi/pdfdirect/10.1111/joes.12550).
 
@@ -111,7 +111,9 @@ platform_color_mapping <- c(
 
 ## Digitalni medijski prostor RH
 
+<br><br>
 [Digitalni medijski prostor](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/02-metodologija.html) sve je važniji dio [medijskog prostora u Hrvatskoj](https://reutersinstitute.politics.ox.ac.uk/digital-news-report/2025/croatia).
+<br><br>
 
 ::: {.panel-tabset}
 #### Koncept
@@ -124,7 +126,7 @@ Podatci uključuju:
 <br><br>
 -  web,fb,ig,x,yt,reddit,forum,komentari
 <br><br>
--  49 karakteristika po objavi (FULL_TEXT,TITLE, DATE, SOURCE_TYPE, INTERACTIONS, REACH, ENGAGEMENT_RATE, VIRALITY, LIKE_COUNT, COMMENT_COUNT, SHARE_COUNT, ...)
+-  49 karakteristika po objavi
 
 #### Objave
 ```{r plot1, echo=FALSE, message=FALSE, warning=FALSE}
@@ -238,6 +240,89 @@ ggplot(
 
 ```
 
+
+#### Dnevno
+
+
+```{r}
+# --- 3. Dnevna deskriptivna statistika po platformi (uklj. varijabilnost) ---
+
+# KORAK 1: Dohvaćanje DNEVNIH zbrojeva iz baze podataka
+daily_query <- paste0("
+  SELECT
+    date(DATETIME) AS date,
+    SOURCE_TYPE,
+    COUNT(*) AS num_posts,
+    SUM(INTERACTIONS) AS total_interactions,
+    SUM(REACH) AS total_reach,
+    AVG(ENGAGEMENT_RATE) AS daily_avg_engagement_rate,
+    AVG(VIRALITY) AS daily_avg_virality
+  FROM ", table_name, "
+  WHERE DATETIME IS NOT NULL AND SOURCE_TYPE IS NOT NULL
+  -- ISPRAVAK JE OVDJE:
+  -- Morate grupirati po samoj funkciji, a ne po aliasu 'date'
+  GROUP BY date(DATETIME), SOURCE_TYPE
+  -- U ORDER BY klauzuli alias 'date' je dozvoljen
+  ORDER BY date, SOURCE_TYPE;
+")
+
+# Izvršavanje upita
+daily_data_per_platform <- dbGetQuery(con, daily_query)
+
+# KORAK 2: Izračun deskriptivnih statistika u R-u
+# (Ovaj dio ostaje potpuno isti kao prije)
+desc_stats_table <- daily_data_per_platform %>%
+  group_by(SOURCE_TYPE) %>%
+  summarise(
+    platforma = first(SOURCE_TYPE),
+    ukupno_aktivnih_dana = n_distinct(date),
+    
+    # --- Statistika za dnevne objave ---
+    prosjek_dnevnih_objava = mean(num_posts, na.rm = TRUE),
+    medijan_dnevnih_objava = median(num_posts, na.rm = TRUE),
+    varijabilnost_objava_sd = sd(num_posts, na.rm = TRUE),
+    min_dnevnih_objava = min(num_posts, na.rm = TRUE),
+    max_dnevnih_objava = max(num_posts, na.rm = TRUE),
+
+    # --- Statistika za dnevne interakcije ---
+    prosjek_dnevnih_interakcija = mean(total_interactions, na.rm = TRUE),
+    medijan_dnevnih_interakcija = median(total_interactions, na.rm = TRUE),
+    varijabilnost_interakcija_sd = sd(total_interactions, na.rm = TRUE),
+
+    # --- Statistika za dnevni doseg ---
+    prosjek_dnevnog_dosega = mean(total_reach, na.rm = TRUE),
+    medijan_dnevnog_dosega = median(total_reach, na.rm = TRUE),
+    varijabilnost_dosega_sd = sd(total_reach, na.rm = TRUE),
+    
+    # --- Prosjeci dnevnih stopa ---
+    prosjek_dnevnog_engagement_rate = mean(daily_avg_engagement_rate, na.rm = TRUE),
+    prosjek_dnevne_viralnosti = mean(daily_avg_virality, na.rm = TRUE),
+    
+    .groups = 'drop'
+  ) %>%
+  mutate(across(where(is.numeric), ~ifelse(is.nan(.) | is.infinite(.), 0, .))) %>%
+  select(platforma, ukupno_aktivnih_dana, prosjek_dnevnih_objava, medijan_dnevnih_objava, varijabilnost_objava_sd, everything())
+
+# --- KORAK 3: Prikaz tablice ---
+kable(desc_stats_table, 
+      digits = 2,
+      caption = "Dnevna deskriptivna statistika performansi po platformi"
+) %>%
+  kable_styling(
+    # 'responsive' opcija ponekad smeta scroll_box-u, pa je sigurnije maknuti je
+    bootstrap_options = c("striped", "hover", "condensed"), 
+    full_width = FALSE
+  ) %>%
+  
+  # --- DODAJTE OVAJ DIO ---
+  # Omotava tablicu u "kutiju" koja se može skrolati
+  scroll_box(
+    width = "100%",  # Neka kutija zauzme 100% širine
+    height = "400px" # Fiksna visina. Prilagodite visinu (npr. "500px")
+  )
+```
+
+
 #### Interakcije
 ```{r , echo=FALSE, message=FALSE, warning=FALSE}
 # Vizualizacija 2: Ukupne interakcije po platformi (General Overview - Interactions per Platform)
@@ -273,7 +358,7 @@ ggplot(
   # Use the clear, professional titles from your original code
   labs(
     title = "Ukupne interakcije po platformi ",
-    subtitle = "Gdje se generira najveći ukupan angažman publike?",
+    subtitle = "",
     x = "Ukupne interakcije",
     y = "Tip platforme"
   ) +
@@ -562,25 +647,19 @@ ggplot(monthly_full_trends, aes(x = month)) +
 
 
 
-
-#### Dnevno
-
-
-
-
 :::
 
 ---
 
 ## Strateška razina
-
-Dva svijeta HNB: Stručna rasprava protiv javne arene! 
-
+<br><br>  
+Dva svijeta HNB: Stručna rasprava vs javna arena! 
+<br>
 
 ::: {.panel-tabset}
 #### Koncept
 
-Analiza 20k medijskih objava o HNB otkriva zanimljivu sliku. To je priča o dva različita svijeta koji se rijetko dodiruju... sve dok ih ključna tema ne prisili na to. Inflacija, od monetarnog do medijskog fenomena!
+Analiza 20k medijskih objava o HNB pokazuje dva različita svijeta koji se rijetko dodiruju...sve dok ih ključna tema ne prisili na to. Inflacija, od monetarnog do medijskog fenomena!
 
 
 #### Interakcije
@@ -973,7 +1052,7 @@ ggplot(thematic_intensity_data2,
 
 #### Mreža
 
-```{r lexicons, echo=FALSE, message=FALSE, warning=FALSE}
+```{r lexicons_, echo=FALSE, message=FALSE, warning=FALSE}
 # read in lexicons
 CroSentilex_n <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
                                    header = FALSE,
@@ -1056,7 +1135,7 @@ nrc_lexicon_long_ <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean
 
 ```
 
-```{r load-lexicons, echo=FALSE, message=FALSE, warning=FALSE}
+```{r load-lexicons_, echo=FALSE, message=FALSE, warning=FALSE}
 # --- FAZA 1: UČITAVANJE I PRIPREMA SVIH LEKSIKONA ---
 # Ovaj chunk učitava sve potrebne jezične resurse i pretvara ih u "uredan" (tidy)
 # format spreman za spajanje s lingvističkim podacima.
@@ -1413,8 +1492,8 @@ ggplot(top_associated_words_final, aes(x = total_cooccurrences, y = reorder_with
   theme(strip.text = element_text(face = "bold")) +
   labs(
     title = "Evolucija i atmosfera narativa o guverneru HNB-a",
-    subtitle = "Boja stupca otkriva tonalitet specifičnog narativnog okvira",
-    x = "Broj zajedničkih pojavljivanja s riječi 'guverner'", y = "Asocirana riječ"
+    subtitle = "",
+    x = "Broj pojavljivanja riječi", y = "Asocirana riječ"
   )
 ```
 
@@ -1423,6 +1502,9 @@ ggplot(top_associated_words_final, aes(x = total_cooccurrences, y = reorder_with
 ---
 
 ## Operativna razina
+
+<br><br>
+Medijski podatci se mogu na 
 
 
 ::: {.panel-tabset}
@@ -1793,7 +1875,7 @@ ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_se
 
 
 
-#### Kada 
+
 
 #### Događaji
 
@@ -1866,7 +1948,7 @@ dta_final <- dta_temp %>%
 
 
 
-```{r anomaly-detection, eval= T, message=FALSE, warning=FALSE}
+```{r anomaly-detection_, eval= T, message=FALSE, warning=FALSE}
 # --- KOD ZA DETEKCIJU ANOMALIJA (POBOLJŠANA VERZIJA) ---
 daily_summary <- dta_final %>%
   mutate(date = as.Date(DATE)) %>%
@@ -2000,13 +2082,14 @@ p_cli_z
 ---
 
 ## Istraživačka razina
-
-
+<br><br>
+Literatura o komunikaciji središnjih banaka je značajna i vrlo aktualna.
+<br>
 ::: {.panel-tabset}
 #### Koncept
 
-Literatura o komunikaciji središnjih banaka je značajna i vrlo aktualna. Nekoliko  je istraživačkih pravaca koji se ističu:
-[inflacija](https://www.ecb.europa.eu/press/conferences/ecbforum/shared/pdf/2025/EFCB_2025_Trebbi_Paper.pdf), nowcasting, [ekonomska politika](https://www.policyuncertainty.com/media/EPU_BBD_Mar2016.pdf), odnosno [nesigurnost](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf), komunikacija sa ne-stručnjacima, komunikacija kao transmisijski kanal
+Nekoliko  je istraživačkih pravaca koji se ističu:
+[inflacija](https://www.ecb.europa.eu/press/conferences/ecbforum/shared/pdf/2025/EFCB_2025_Trebbi_Paper.pdf), nowcasting, [ekonomska politika](https ://www.policyuncertainty.com/media/EPU_BBD_Mar2016.pdf),[nesigurnost](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf), komunikacija sa ne-stručnjacima, komunikacija kao transmisijski kanal...
 
 #### Inflacija I
 [i](https://archiv.ub.uni-heidelberg.de/volltextserver/34992/7/Arndt_dp748_2024.pdf)
@@ -2408,11 +2491,9 @@ ggplot(epu_index_filtered, aes(x = month_date, y = epu_index)) +
 
 Presscut podatci za 08/2025; 190 objva i 15 karakteristika.
 
-#### Top platforme 
+#### Pojmovi 
 
-
-
-```{r}
+```{r, mesage=FALSE, warning=FALSE}
 library(readr)
 library(dplyr)
 library(ggplot2)
@@ -2742,414 +2823,7 @@ wordcloud(
 
 ```
 
-```{r}
-thematic_intensity_data2 <- dta_enriched2 %>%
-  select(starts_with("norm_")) %>%
-  pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
-  mutate(topic = str_remove(topic, "norm_")) %>%
-  filter(intensity > 0)
-
-ggplot(thematic_intensity_data2, aes(x = intensity, y = fct_reorder(topic, intensity, .fun = median))) +
-  geom_density_ridges(scale = 2, fill = "#0072B2", color = "white", alpha = 0.8) +
-  scale_x_log10(breaks = c(1, 10, 100, 1000), labels = c("1", "10", "100", "1000")) +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribucija intenziteta tema",
-    subtitle = "Koliko su teme centralne za članke u kojima se pojavljuju?",
-    x = "Intenzitet teme (spominjanja na 1000 riječi, log skala)",
-    y = "Tema"
-  ) +
-  theme(panel.grid.major.y = element_blank())
-```
-
-
-
-```{r plot-topic-intensity}
-thematic_intensity_data <- dta_enriched %>%
-  select(starts_with("norm_")) %>%
-  pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
-  mutate(topic = str_remove(topic, "norm_")) %>%
-  filter(intensity > 0)
-
-ggplot(thematic_intensity_data, aes(x = intensity, y = fct_reorder(topic, intensity, .fun = median))) +
-  geom_density_ridges(scale = 2, fill = "#0072B2", color = "white", alpha = 0.8) +
-  scale_x_log10(breaks = c(1, 10, 100, 1000), labels = c("1", "10", "100", "1000")) +
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Distribucija intenziteta tema",
-    subtitle = "Koliko su teme centralne za članke u kojima se pojavljuju?",
-    x = "Intenzitet teme (spominjanja na 1000 riječi, log skala)",
-    y = "Tema"
-  ) +
-  theme(panel.grid.major.y = element_blank())
-```
-
-
-
-```{r}
-
-topic_palette <- c(
-  "#003366",  # Dark Blue
-  "#5B9BD5",  # Medium Blue
-  "#C00000",  # Accent Red
-  "#BF8F00",  # Accent Gold
-  "#005F56",  # Dark Green
-  "#A0522D",  # Muted Sienna
-  "#7F7F7F",  # Medium Grey
-  "#8A798C"   # Muted Mauve
-)
-
-
-
-engagement_by_topic <- dta_enriched %>%
-  filter(dominant_topic != "Nema Teme") %>%
-  group_by(dominant_topic) %>%
-  summarise(
-    # --- IZMJENA: Koristimo Vrijednost_EUR ---
-    avg_vrijednost = mean(`Vrijednost €`, na.rm = TRUE), 
-    total_articles = n()
-  ) %>%
-  arrange(desc(avg_vrijednost))
-
-# --- 3. Crtanje grafikona (primijenjena tema i paleta) ---
-graf_teme_avg_vrijednost <- ggplot(engagement_by_topic, 
-       aes(x = avg_vrijednost, 
-           y = fct_reorder(dominant_topic, avg_vrijednost),
-           fill = dominant_topic)) + # Mapiramo fill na temu
-  
-  geom_col(width = 0.8) +
-  
-  # --- IZMJENA: Formatiramo labelu kao Euro ---
-  geom_text(aes(label = scales::comma(avg_vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",", accuracy = 1)), 
-            hjust = -0.05, 
-            size = 4) +
-            
-  # Proširujemo os da stane tekst
-  expand_limits(x = max(engagement_by_topic$avg_vrijednost, na.rm = TRUE) * 1.15) +
-  
-  # --- PRIMJENA PALETE ---
-  scale_fill_manual(values = topic_palette) +
-  
-  # --- PRIMJENA TEME ---
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Koje teme generiraju najviše prosječne vrijednosti (€)?",
-    subtitle = "Prosječna medijska vrijednost (€) po članku za svaku dominantnu temu",
-    x = "Prosječna vrijednost (€)", 
-    y = "Dominantna tema"
-  ) +
-  theme(
-    legend.position = "none",
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.x = element_blank()
-  )
-
-graf_teme_avg_vrijednost
-
-
-```
-
-```{r}
-engagement_by_topic2 <- dta_enriched_people %>%
-  filter(dominant_topic != "Nema Teme") %>%
-  group_by(dominant_topic) %>%
-  summarise(
-    # --- IZMJENA: Koristimo Vrijednost_EUR ---
-    avg_vrijednost = mean(`Vrijednost €`, na.rm = TRUE),
-    total_articles = n()
-  ) %>%
-  arrange(desc(avg_vrijednost))
-
-# --- 3. Crtanje grafikona (primijenjena tema i paleta) ---
-graf_akteri_avg_vrijednost <- ggplot(engagement_by_topic2, 
-       aes(x = avg_vrijednost, 
-           y = fct_reorder(dominant_topic, avg_vrijednost),
-           fill = dominant_topic)) + # Mapiramo fill na aktera
-           
-  geom_col(width = 0.8) +
-  
-  # --- IZMJENA: Formatiramo labelu kao Euro ---
-  geom_text(aes(label = scales::comma(avg_vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",", accuracy = 1)), 
-            hjust = -0.05, 
-            size = 4) +
-            
-  expand_limits(x = max(engagement_by_topic2$avg_vrijednost, na.rm = TRUE) * 1.15) +
-  
-  # --- PRIMJENA PALETE ---
-  scale_fill_manual(values = topic_palette) +
-  
-  # --- PRIMJENA TEME ---
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Koji akteri generiraju najviše prosječne vrijednosti (€)?",
-    subtitle = "Prosječna medijska vrijednost (€) po članku za svakog dominantnog aktera",
-    x = "Prosječna vrijednost (€)", 
-    y = "Dominantni akter"
-  ) +
-  theme(
-    legend.position = "none",
-    panel.grid.major.y = element_blank(),
-    panel.grid.minor.x = element_blank()
-  )
-graf_akteri_avg_vrijednost
-
-
-
-```
-
-
-```{r plot-topic-network, fig.height=10}
-# Ovaj kod je iz vašeg RMD-a, samo ga prikazujemo ovdje.
-topic_pairs <- dta_enriched %>%
-  select(doc_id, starts_with("norm_")) %>%
-  pivot_longer(-doc_id, names_to = "topic", values_to = "intensity") %>%
-  mutate(topic = str_remove(topic, "norm_")) %>%
-  filter(intensity > 0) %>%
-  pairwise_cor(item = topic, feature = doc_id, upper = FALSE)
-
-set.seed(123)
-topic_pairs %>%
-  filter(correlation > 0.1) %>%
-  graph_from_data_frame() %>%
-  ggraph(layout = "fr") +
-  geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation), color = "lightblue") +
-  geom_node_point(color = "darkblue", size = 5) +
-  geom_node_text(aes(label = str_wrap(name, 20)), repel = TRUE, size = 4) +
-  theme_void() +
-  labs(
-    title = "Mreža povezanosti tema",
-    subtitle = "Koje se teme najčešće pojavljuju zajedno u istim člancima?",
-    edge_width = "Snaga veze (korelacija)",
-    edge_alpha = ""
-  )
-```
-
-
-
-
-
-```{r emotional-analysis, include=FALSE, eval=T}
-# --- Izračuni za dvoslojnu analizu (izvršava se u pozadini) ---
-
-# Sloj 1: Sentiment Score (CroSentilex)
-# document_sentiments <- nlp_results_df %>%
-#   inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
-#   group_by(doc_id) %>%
-#   summarise(sentiment_score = median(sentiment_value, na.rm = TRUE)) %>%
-#   ungroup()
-# files <- list.files("D:/LUKA/Language model", full.names = TRUE, pattern = "\\.rds")
-# nlp_results_df <- lapply(files, readRDS) %>%
-#   bind_rows() %>%
-#   mutate(doc_id = as.integer(doc_id))
-
-
-sentiment_counts_gold <- nlp_results_df %>%
-  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
-  # Filtriramo neutralne riječi jer nam ne trebaju za ovu formulu
-  filter(sentiment_value != 0) %>% 
-  # Brojimo koliko je pozitivnih (1) i negativnih (-1) riječi
-  count(doc_id, sentiment_value) %>%
-  # Pretvaramo u široki format da imamo stupce za 'pozitivne' i 'negativne'
-  pivot_wider(names_from = sentiment_value, values_from = n, values_fill = 0)
-
-# --- DEFENZIVNI BLOK KODA ---
-# Provjeravamo postoji li stupac '1' (pozitivni). Ako ne, dodajemo ga s nulama.
-if (!"1" %in% names(sentiment_counts_gold)) {
-  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`1` = 0) }
-# Provjeravamo postoji li stupac '-1' (negativni). Ako ne, dodajemo ga s nulama.
-if (!"-1" %in% names(sentiment_counts_gold)) {
-  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`-1` = 0) }
-# --- KRAJ DEFENZIVNOG BLOKA ---
-
-# Sada sigurno preimenujemo stupce jer znamo da postoje
-sentiment_counts_gold <- sentiment_counts_gold %>%
-  rename(
-    positive_words = `1`,
-    negative_words = `-1` )
-
-
-epsilon <- 1e-6 
-
-document_sentiments_gold <- sentiment_counts_gold %>%
-  mutate(
-    sentiment_score_gold = (positive_words - negative_words) / (positive_words + negative_words + epsilon)
-  ) %>%
-  select(doc_id, sentiment_score_gold)
-
-# Sloj 2: Dominantni Psihološki Proces (NRC)
-document_emotions <- nlp_results_df %>%
-  inner_join(nrc_lexicon_long, by = c("lemma" = "word")) %>%
-  count(doc_id, emotion) %>%
-  group_by(doc_id) %>%
-  slice_max(order_by = n, n = 1, with_ties = FALSE) %>%
-  ungroup() %>%
-  select(doc_id, dominant_emotion = emotion)
-
-# Spajanje svega u jedan dataframe
-dta_atmosphere <- dta_enriched %>%
-  left_join(document_sentiments_gold, by = "doc_id") %>%
-  left_join(document_emotions, by = "doc_id") %>%
-  mutate(
-    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
-    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion)
-  )
-
-# Priprema podataka za vizualizaciju
-heatmap_data <- dta_atmosphere %>%
-  filter(dominant_topic != "Nema Teme") %>%
-  group_by(dominant_topic, dominant_emotion) %>%
-  summarise(avg_sentiment = mean(sentiment_score),
-            n_articles = n()) %>%
-  ungroup() %>%
-  # Prikazujemo samo emocije s dovoljno članaka za analizu
-  filter(n_articles > 1)
-```
-
-
-```{r plot-emotion-heatmap, fig.width=10, fig.height=6, echo=FALSE}
-ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_sentiment)) +
-  geom_tile(color = "white", linewidth = 0.5) +
-  geom_text(aes(label = round(avg_sentiment, 2)), size = 3, color = "black") +
-  scale_fill_gradient2(low = "firebrick", mid = "white", high = "steelblue", midpoint = 0, name = "Prosj. Sentiment") +
-  theme_minimal(base_size = 12) +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(
-    title = "Matrica atmosfere: Kako psihološki okvir utječe na tonalitet teme",
-    subtitle = "Boja ćelije predstavlja prosječni sentiment (CroSentilex) unutar svake kombinacije teme i dominantne emocije (NRC)",
-    x = "Dominantni psihološki proces (NRC)",
-    y = "Dominantna tema"
-  )
-```
-
-
-```{r rci-calculation, include=FALSE}
-# --- Izračuni za RCI (izvršava se u pozadini) ---
-conflict_lexicon <- nrc_lexicon_long %>% 
-  filter(emotion %in% c("Ljutnja", "Gađenje")) %>% 
-  pull(word) %>% 
-  unique()
-
-
-conflict_lexicon <- unique(c(
-  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
-  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
-  c(
-  # Opći konflikt i kritika (General Conflict & Criticism)
-  "kritik", "laž", "napad", "upozorenj", "licemjerje", "sramotno", "manipulacij", 
-  "propaganda", "ekstrem", "kontroverz", "sukob", "optužb", "prijetnj", "opasnost",
-
-  # Kriza i neuspjeh (Crisis & Failure)
-  "kriza", "kolaps", "slom", "propast", "gubitak", "šteta", "neuspjeh", "recesija",
-
-  # Nezakonitosti i skandali (Illegality & Scandals)
-  "skandal", "afera", "korupcij", "prevara", "prijevara", "zlouporaba", "tužb", 
-  "presuda", "nezakonito", "sukob interesa", "netransparentnost",
-  
-  # Ekonomski pritisci i rizici (Economic Pressures & Risks)
-  "rizik", "dug", "deficit", "teret", "namet", "trošak", "siromaštv", "špekulacij", 
-  "mjehur", # (npr. nekretninski mjehur)
-
-  # Specifične povijesne kontroverze (Specific Historical Controversies)
-  "franak", "švicarac", "klub"
-)
-))
-
-
-
-
-
-cli_scores <- nlp_results_df %>%
-  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
-  group_by(doc_id) %>%
-  summarise(
-    cli = (sum(is_conflict) / n()) * 1000
-  )
-
-dta_atmosphere <- dta_enriched %>% 
-  left_join(cli_scores, by = "doc_id") %>%
-  mutate(cli = ifelse(is.na(cli), 0, cli))
-
-avg_cli_media <- dta_atmosphere %>% group_by(Medij) %>% summarise(avg_cli_media = mean(cli))
-avg_cli_topic <- dta_atmosphere %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
-
-dta_atmosphere <- dta_atmosphere %>%
-  left_join(avg_cli_media, by = "Medij") %>%
-  left_join(avg_cli_topic, by = "dominant_topic") %>%
-  mutate(
-    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
-    rci = cli - expected_cli
-  )
-```
-
-
-```{r}
-# --- MODUL ZA MAPU MEDIJSKIH STRATEGIJA (ISPRAVLJENA VERZIJA) ---
-
-# Izračun CLI-a (ostaje isto)
-cli_scores <- nlp_results_df %>%
-  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
-  group_by(doc_id) %>%
-  summarise(
-    cli = (sum(is_conflict) / n()) * 1000
-  ) %>% ungroup()
-
-# Spajanje i izračun RCI-a (ostaje isto)
-dta_atmosphere <- dta_enriched %>% 
-  left_join(cli_scores, by = "doc_id") %>%
-  mutate(cli = ifelse(is.na(cli), 0, cli))
-
-avg_cli_media <- dta_atmosphere %>% group_by(Medij) %>% summarise(avg_cli_media = mean(cli))
-avg_cli_topic <- dta_atmosphere %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
-
-dta_atmosphere_final <- dta_atmosphere %>%
-  left_join(avg_cli_media, by = "Medij") %>%
-  left_join(avg_cli_topic, by = "dominant_topic") %>%
-  mutate(
-    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
-    rci = cli - expected_cli
-  )
-```
-
-
-
-```{r plot-rci-strategy, fig.width=10, fig.height=7, warning=FALSE, message=FALSE}
-media_strategy_data <- dta_atmosphere_final %>%
-  # Grupiramo po mediju
-  group_by(Medij) %>%
-  # Računamo naše metrike I broj članaka
-  summarise(
-    avg_cli = mean(cli, na.rm = TRUE),
-    rci_sd = sd(rci, na.rm = TRUE),
-    n_articles = n()
-  ) %>%
-  ungroup() #%>%
-  # Filtriramo medije s premalo članaka i one gdje je devijacija NA
-  #filter(n_articles > 1, !is.na(rci_sd), rci_sd > 0) %>%
-  # Uzimamo top 30 po broju članaka radi preglednosti
-  #slice_max(order_by = n_articles, n = 2)
-
-# Vizualizacija s poboljšanjima
-ggplot(media_strategy_data, aes(x = avg_cli, y = rci_sd, size = n_articles)) + # Dodajemo size = n_articles
-  # Dodajemo malo "jittera" da se točke koje su blizu razdvoje
-  geom_jitter(color = "darkred", alpha = 0.7, width = 0.01, height = 0.01) + 
-  
-  geom_text_repel(aes(label = Medij), size = 3.5, max.overlaps = 15) +
-  
-  # KORISTIMO LOGARITAMSKU SKALU za bolju distribuciju
-  scale_x_log10(labels = scales::number_format(accuracy = 0.1)) +
-  scale_y_log10(labels = scales::number_format(accuracy = 0.1)) +
-  
-  scale_size_continuous(range = c(2, 10), name = "Broj članaka") +
-  
-  theme_minimal(base_size = 14) +
-  labs(
-    title = "Mapa medijskih strategija konflikta",
-    subtitle = "Pozicija medija temeljena na prosječnoj razini i varijabilnosti konfliktnog jezika",
-    x = "Prosječni indeks konfliktnog jezika (CLI) - 'Kućni Ton' (Log Skala)",
-    y = "Standardna devijacija RCI-a - 'Nepredvidivost' (Log Skala)"
-  )
-```
-
+#### Teme
 
 
 ```{r lexicons, include=FALSE, eval=FALSE}
@@ -3307,9 +2981,428 @@ nrc_lexicon_long <- nrc_lexicon_raw %>%
 
 
 
+```{r}
+thematic_intensity_data2 <- dta_enriched2 %>%
+  select(starts_with("norm_")) %>%
+  pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 0)
+
+ggplot(thematic_intensity_data2, aes(x = intensity, y = fct_reorder(topic, intensity, .fun = median))) +
+  geom_density_ridges(scale = 2, fill = "#0072B2", color = "white", alpha = 0.8) +
+  scale_x_log10(breaks = c(1, 10, 100, 1000), labels = c("1", "10", "100", "1000")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribucija intenziteta tema",
+    subtitle = "Koliko su teme centralne za članke u kojima se pojavljuju?",
+    x = "Intenzitet teme (spominjanja na 1000 riječi, log skala)",
+    y = "Tema"
+  ) +
+  theme(panel.grid.major.y = element_blank())
+```
+
+#### Teme II
+
+```{r plot-topic-intensity}
+thematic_intensity_data <- dta_enriched %>%
+  select(starts_with("norm_")) %>%
+  pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 0)
+
+ggplot(thematic_intensity_data, aes(x = intensity, y = fct_reorder(topic, intensity, .fun = median))) +
+  geom_density_ridges(scale = 2, fill = "#0072B2", color = "white", alpha = 0.8) +
+  scale_x_log10(breaks = c(1, 10, 100, 1000), labels = c("1", "10", "100", "1000")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Distribucija intenziteta tema",
+    subtitle = "Koliko su teme centralne za članke u kojima se pojavljuju?",
+    x = "Intenzitet teme (spominjanja na 1000 riječi, log skala)",
+    y = "Tema"
+  ) +
+  theme(panel.grid.major.y = element_blank())
+```
+
+#### Teme III
+
+```{r}
+
+topic_palette <- c(
+  "#003366",  # Dark Blue
+  "#5B9BD5",  # Medium Blue
+  "#C00000",  # Accent Red
+  "#BF8F00",  # Accent Gold
+  "#005F56",  # Dark Green
+  "#A0522D",  # Muted Sienna
+  "#7F7F7F",  # Medium Grey
+  "#8A798C"   # Muted Mauve
+)
 
 
 
+engagement_by_topic <- dta_enriched %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic) %>%
+  summarise(
+    # --- IZMJENA: Koristimo Vrijednost_EUR ---
+    avg_vrijednost = mean(`Vrijednost €`, na.rm = TRUE), 
+    total_articles = n()
+  ) %>%
+  arrange(desc(avg_vrijednost))
+
+# --- 3. Crtanje grafikona (primijenjena tema i paleta) ---
+graf_teme_avg_vrijednost <- ggplot(engagement_by_topic, 
+       aes(x = avg_vrijednost, 
+           y = fct_reorder(dominant_topic, avg_vrijednost),
+           fill = dominant_topic)) + # Mapiramo fill na temu
+  
+  geom_col(width = 0.8) +
+  
+  # --- IZMJENA: Formatiramo labelu kao Euro ---
+  geom_text(aes(label = scales::comma(avg_vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",", accuracy = 1)), 
+            hjust = -0.05, 
+            size = 4) +
+            
+  # Proširujemo os da stane tekst
+  expand_limits(x = max(engagement_by_topic$avg_vrijednost, na.rm = TRUE) * 1.15) +
+  
+  # --- PRIMJENA PALETE ---
+  scale_fill_manual(values = topic_palette) +
+  
+  # --- PRIMJENA TEME ---
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Koje teme generiraju najviše prosječne vrijednosti (€)?",
+    subtitle = "Prosječna medijska vrijednost (€) po članku za svaku dominantnu temu",
+    x = "Prosječna vrijednost (€)", 
+    y = "Dominantna tema"
+  ) +
+  theme(
+    legend.position = "none",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+
+graf_teme_avg_vrijednost
+
+
+```
+
+
+#### Teme IV
+
+
+```{r}
+engagement_by_topic2 <- dta_enriched_people %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic) %>%
+  summarise(
+    # --- IZMJENA: Koristimo Vrijednost_EUR ---
+    avg_vrijednost = mean(`Vrijednost €`, na.rm = TRUE),
+    total_articles = n()
+  ) %>%
+  arrange(desc(avg_vrijednost))
+
+# --- 3. Crtanje grafikona (primijenjena tema i paleta) ---
+graf_akteri_avg_vrijednost <- ggplot(engagement_by_topic2, 
+       aes(x = avg_vrijednost, 
+           y = fct_reorder(dominant_topic, avg_vrijednost),
+           fill = dominant_topic)) + # Mapiramo fill na aktera
+           
+  geom_col(width = 0.8) +
+  
+  # --- IZMJENA: Formatiramo labelu kao Euro ---
+  geom_text(aes(label = scales::comma(avg_vrijednost, suffix = " €", big.mark = ".", decimal.mark = ",", accuracy = 1)), 
+            hjust = -0.05, 
+            size = 4) +
+            
+  expand_limits(x = max(engagement_by_topic2$avg_vrijednost, na.rm = TRUE) * 1.15) +
+  
+  # --- PRIMJENA PALETE ---
+  scale_fill_manual(values = topic_palette) +
+  
+  # --- PRIMJENA TEME ---
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Koji akteri generiraju najviše prosječne vrijednosti (€)?",
+    subtitle = "Prosječna medijska vrijednost (€) po članku za svakog dominantnog aktera",
+    x = "Prosječna vrijednost (€)", 
+    y = "Dominantni akter"
+  ) +
+  theme(
+    legend.position = "none",
+    panel.grid.major.y = element_blank(),
+    panel.grid.minor.x = element_blank()
+  )
+graf_akteri_avg_vrijednost
+
+
+
+```
+
+
+#### Teme V
+
+
+```{r plot-topic-network, fig.height=10}
+# Ovaj kod je iz vašeg RMD-a, samo ga prikazujemo ovdje.
+topic_pairs <- dta_enriched %>%
+  select(doc_id, starts_with("norm_")) %>%
+  pivot_longer(-doc_id, names_to = "topic", values_to = "intensity") %>%
+  mutate(topic = str_remove(topic, "norm_")) %>%
+  filter(intensity > 0) %>%
+  pairwise_cor(item = topic, feature = doc_id, upper = FALSE)
+
+set.seed(123)
+topic_pairs %>%
+  filter(correlation > 0.1) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation, edge_width = correlation), color = "lightblue") +
+  geom_node_point(color = "darkblue", size = 5) +
+  geom_node_text(aes(label = str_wrap(name, 20)), repel = TRUE, size = 4) +
+  theme_void() +
+  labs(
+    title = "Mreža povezanosti tema",
+    subtitle = "Koje se teme najčešće pojavljuju zajedno u istim člancima?",
+    edge_width = "Snaga veze (korelacija)",
+    edge_alpha = ""
+  )
+```
+
+
+
+
+
+```{r emotional-analysis, include=FALSE, eval=T}
+# --- Izračuni za dvoslojnu analizu (izvršava se u pozadini) ---
+
+# Sloj 1: Sentiment Score (CroSentilex)
+# document_sentiments <- nlp_results_df %>%
+#   inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+#   group_by(doc_id) %>%
+#   summarise(sentiment_score = median(sentiment_value, na.rm = TRUE)) %>%
+#   ungroup()
+# files <- list.files("D:/LUKA/Language model", full.names = TRUE, pattern = "\\.rds")
+# nlp_results_df <- lapply(files, readRDS) %>%
+#   bind_rows() %>%
+#   mutate(doc_id = as.integer(doc_id))
+
+
+sentiment_counts_gold <- nlp_results_df %>%
+  inner_join(crosentilex_gold_prepared, by = c("lemma" = "word")) %>%
+  # Filtriramo neutralne riječi jer nam ne trebaju za ovu formulu
+  filter(sentiment_value != 0) %>% 
+  # Brojimo koliko je pozitivnih (1) i negativnih (-1) riječi
+  count(doc_id, sentiment_value) %>%
+  # Pretvaramo u široki format da imamo stupce za 'pozitivne' i 'negativne'
+  pivot_wider(names_from = sentiment_value, values_from = n, values_fill = 0)
+
+# --- DEFENZIVNI BLOK KODA ---
+# Provjeravamo postoji li stupac '1' (pozitivni). Ako ne, dodajemo ga s nulama.
+if (!"1" %in% names(sentiment_counts_gold)) {
+  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`1` = 0) }
+# Provjeravamo postoji li stupac '-1' (negativni). Ako ne, dodajemo ga s nulama.
+if (!"-1" %in% names(sentiment_counts_gold)) {
+  sentiment_counts_gold <- sentiment_counts_gold %>% mutate(`-1` = 0) }
+# --- KRAJ DEFENZIVNOG BLOKA ---
+
+# Sada sigurno preimenujemo stupce jer znamo da postoje
+sentiment_counts_gold <- sentiment_counts_gold %>%
+  rename(
+    positive_words = `1`,
+    negative_words = `-1` )
+
+
+epsilon <- 1e-6 
+
+document_sentiments_gold <- sentiment_counts_gold %>%
+  mutate(
+    sentiment_score_gold = (positive_words - negative_words) / (positive_words + negative_words + epsilon)
+  ) %>%
+  select(doc_id, sentiment_score_gold)
+
+# Sloj 2: Dominantni Psihološki Proces (NRC)
+document_emotions <- nlp_results_df %>%
+  inner_join(nrc_lexicon_long, by = c("lemma" = "word")) %>%
+  count(doc_id, emotion) %>%
+  group_by(doc_id) %>%
+  slice_max(order_by = n, n = 1, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(doc_id, dominant_emotion = emotion)
+
+# Spajanje svega u jedan dataframe
+dta_atmosphere <- dta_enriched %>%
+  left_join(document_sentiments_gold, by = "doc_id") %>%
+  left_join(document_emotions, by = "doc_id") %>%
+  mutate(
+    sentiment_score = ifelse(is.na(sentiment_score_gold), 0, sentiment_score_gold),
+    dominant_emotion = ifelse(is.na(dominant_emotion), "Neutralno", dominant_emotion)
+  )
+
+# Priprema podataka za vizualizaciju
+heatmap_data <- dta_atmosphere %>%
+  filter(dominant_topic != "Nema Teme") %>%
+  group_by(dominant_topic, dominant_emotion) %>%
+  summarise(avg_sentiment = mean(sentiment_score),
+            n_articles = n()) %>%
+  ungroup() %>%
+  # Prikazujemo samo emocije s dovoljno članaka za analizu
+  filter(n_articles > 1)
+```
+
+
+#### Uokvirivanje
+
+
+```{r plot-emotion-heatmap, fig.width=10, fig.height=6, echo=FALSE}
+
+
+
+ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_sentiment)) +
+  geom_tile(color = "white", linewidth = 0.5) +
+  geom_text(aes(label = round(avg_sentiment, 2)), size = 3, color = "black") +
+  scale_fill_gradient2(low = "firebrick", mid = "white", high = "steelblue", midpoint = 0, name = "Prosj. Sentiment") +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(
+    title = "Matrica atmosfere: Kako psihološki okvir utječe na tonalitet teme",
+    subtitle = "Boja ćelije predstavlja prosječni sentiment (CroSentilex) unutar svake kombinacije teme i dominantne emocije (NRC)",
+    x = "Dominantni psihološki proces (NRC)",
+    y = "Dominantna tema"
+  )
+```
+
+
+```{r rci-calculation, include=FALSE}
+# --- Izračuni za RCI (izvršava se u pozadini) ---
+conflict_lexicon <- nrc_lexicon_long %>% 
+  filter(emotion %in% c("Ljutnja", "Gađenje")) %>% 
+  pull(word) %>% 
+  unique()
+
+
+conflict_lexicon <- unique(c(
+  (nrc_lexicon_long %>% filter(emotion %in% c("Ljutnja", "Gađenje", "Strah")) %>% pull(word)),
+  (crosentilex_full %>% filter(sentiment_value <= -0.75) %>% pull(word)),
+  c(
+  # Opći konflikt i kritika (General Conflict & Criticism)
+  "kritik", "laž", "napad", "upozorenj", "licemjerje", "sramotno", "manipulacij", 
+  "propaganda", "ekstrem", "kontroverz", "sukob", "optužb", "prijetnj", "opasnost",
+
+  # Kriza i neuspjeh (Crisis & Failure)
+  "kriza", "kolaps", "slom", "propast", "gubitak", "šteta", "neuspjeh", "recesija",
+
+  # Nezakonitosti i skandali (Illegality & Scandals)
+  "skandal", "afera", "korupcij", "prevara", "prijevara", "zlouporaba", "tužb", 
+  "presuda", "nezakonito", "sukob interesa", "netransparentnost",
+  
+  # Ekonomski pritisci i rizici (Economic Pressures & Risks)
+  "rizik", "dug", "deficit", "teret", "namet", "trošak", "siromaštv", "špekulacij", 
+  "mjehur", # (npr. nekretninski mjehur)
+
+  # Specifične povijesne kontroverze (Specific Historical Controversies)
+  "franak", "švicarac", "klub"
+)
+))
+
+
+
+
+
+cli_scores <- nlp_results_df %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    cli = (sum(is_conflict) / n()) * 1000
+  )
+
+dta_atmosphere <- dta_enriched %>% 
+  left_join(cli_scores, by = "doc_id") %>%
+  mutate(cli = ifelse(is.na(cli), 0, cli))
+
+avg_cli_media <- dta_atmosphere %>% group_by(Medij) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_atmosphere %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_atmosphere <- dta_atmosphere %>%
+  left_join(avg_cli_media, by = "Medij") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+```
+
+
+```{r}
+# --- MODUL ZA MAPU MEDIJSKIH STRATEGIJA (ISPRAVLJENA VERZIJA) ---
+
+# Izračun CLI-a (ostaje isto)
+cli_scores <- nlp_results_df %>%
+  mutate(is_conflict = lemma %in% conflict_lexicon) %>%
+  group_by(doc_id) %>%
+  summarise(
+    cli = (sum(is_conflict) / n()) * 1000
+  ) %>% ungroup()
+
+# Spajanje i izračun RCI-a (ostaje isto)
+dta_atmosphere <- dta_enriched %>% 
+  left_join(cli_scores, by = "doc_id") %>%
+  mutate(cli = ifelse(is.na(cli), 0, cli))
+
+avg_cli_media <- dta_atmosphere %>% group_by(Medij) %>% summarise(avg_cli_media = mean(cli))
+avg_cli_topic <- dta_atmosphere %>% group_by(dominant_topic) %>% summarise(avg_cli_topic = mean(cli))
+
+dta_atmosphere_final <- dta_atmosphere %>%
+  left_join(avg_cli_media, by = "Medij") %>%
+  left_join(avg_cli_topic, by = "dominant_topic") %>%
+  mutate(
+    expected_cli = 0.5 * avg_cli_media + 0.5 * avg_cli_topic,
+    rci = cli - expected_cli
+  )
+```
+
+#### Konfliktnost
+
+```{r plot-rci-strategy, fig.width=10, fig.height=7, warning=FALSE, message=FALSE}
+media_strategy_data <- dta_atmosphere_final %>%
+  # Grupiramo po mediju
+  group_by(Medij) %>%
+  # Računamo naše metrike I broj članaka
+  summarise(
+    avg_cli = mean(cli, na.rm = TRUE),
+    rci_sd = sd(rci, na.rm = TRUE),
+    n_articles = n()
+  ) %>%
+  ungroup() #%>%
+  # Filtriramo medije s premalo članaka i one gdje je devijacija NA
+  #filter(n_articles > 1, !is.na(rci_sd), rci_sd > 0) %>%
+  # Uzimamo top 30 po broju članaka radi preglednosti
+  #slice_max(order_by = n_articles, n = 2)
+
+# Vizualizacija s poboljšanjima
+ggplot(media_strategy_data, aes(x = avg_cli, y = rci_sd, size = n_articles)) + # Dodajemo size = n_articles
+  # Dodajemo malo "jittera" da se točke koje su blizu razdvoje
+  geom_jitter(color = "darkred", alpha = 0.7, width = 0.01, height = 0.01) + 
+  
+  geom_text_repel(aes(label = Medij), size = 3.5, max.overlaps = 15) +
+  
+  # KORISTIMO LOGARITAMSKU SKALU za bolju distribuciju
+  scale_x_log10(labels = scales::number_format(accuracy = 0.1)) +
+  scale_y_log10(labels = scales::number_format(accuracy = 0.1)) +
+  
+  scale_size_continuous(range = c(2, 10), name = "Broj članaka") +
+  
+  theme_minimal(base_size = 14) +
+  labs(
+    title = "Mapa medijskih strategija konflikta",
+    subtitle = "Pozicija medija temeljena na prosječnoj razini i varijabilnosti konfliktnog jezika",
+    x = "Prosječni indeks konfliktnog jezika (CLI) - 'Kućni Ton' (Log Skala)",
+    y = "Standardna devijacija RCI-a - 'Nepredvidivost' (Log Skala)"
+  )
+```
+
+#### Narativi
 
 ```{r figure=TRUE, fig.width=12, fig.height=10, warning=FALSE, message=FALSE}
 # --- MODUL ZA MREŽU NARATIVNE ATMOSFERE (ISPRAVLJENA I POBOLJŠANA VERZIJA) ---
@@ -3483,6 +3576,7 @@ graph_from_data_frame(graph_data, directed = FALSE) %>%
 
 ```
 
+#### Dinamika I
 
 ```{r anomaly-detection, eval= T, message=FALSE, warning=FALSE}
 # --- KOD ZA DETEKCIJU ANOMALIJA (POBOLJŠANA VERZIJA) ---
@@ -3526,7 +3620,7 @@ p_cli <- ggplot(spikes_detected, aes(x = date, y = avg_cli)) +
 
 
 
-```{r standardized-anomaly-detection}
+```{r standardized-anomaly-detection_}
 # --- KOD ZA STANDARDIZIRANU DETEKCIJU ANOMALIJA ---
 
 # Agregiramo podatke po danu
@@ -3611,7 +3705,7 @@ p_cli_z <- ggplot(spikes_detected_z, aes(x = date, y = z_score_cli)) +
 p_volume_z
 ```
 
-
+#### Dinamika II
 
 ```{r}
 p_cli_z
@@ -3619,17 +3713,7 @@ p_cli_z
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+#### Platforme
 
 ```{r}
 df_clean <- df %>%
@@ -3652,7 +3736,6 @@ if (nrow(df_clean) == 0) {
 
 
 ```
-
 
 
 ```{r}
@@ -3698,9 +3781,9 @@ graf_3_stupcasti_themed <- vrsta_medija_data %>%
   
   # Labele
   labs(
-    title = "Ukupna medijska vrijednost (€) po vrsti medija",
-    subtitle = "Usporedba ukupne vrijednosti objava po vrstama medija",
-    x = "Vrsta medija",
+    title = "Ukupna medijska vrijednost (€) po vrsti platforme",
+    subtitle = "",
+    x = "Vrsta platforme",
     y = "Ukupna vrijednost (€)"
   ) +
   
@@ -3775,8 +3858,8 @@ graf_top_mediji_faceted_themed <- top_mediji_po_vrsti %>%
   
   # Labele (iz vašeg koda)
   labs(
-    title = "Top 10 medija po ukupnoj medijskoj vrijednosti (€)",
-    subtitle = "Prikazano po vrsti medija",
+    title = "Top 10 medija po ukupnoj vrijednosti (€)",
+    subtitle = "",
     x = "Ukupna vrijednost (€)",
     y = "Medij"
   ) +
@@ -3828,8 +3911,8 @@ graf_top_autori_single_color <- top_autori_data %>%
   ) +
   
   labs(
-    title = "Top 15 autora po ukupnoj medijskoj vrijednosti (€)",
-    subtitle = "Ukupna vrijednost objava po autoru",
+    title = "Top 15 autora po ukupnoj vrijednosti (€)",
+    subtitle = "",
     x = "Ukupna vrijednost (€)",
     y = "Autor"
   ) +
@@ -3892,8 +3975,8 @@ graf_autori_po_sentimentu <- autori_po_sentimentu_data %>%
   ) +
   
   labs(
-    title = "Vrijednost Top 15 Autora po Sentimentu",
-    subtitle = "Ukupna medijska vrijednost (€) raščlanjena po događajnoj orijentaciji",
+    title = "Vrijednost Top 15 autora po sentimentu",
+    subtitle = "",
     x = "Ukupna vrijednost (€)",
     y = "Autor",
     fill = "Sentiment:"
@@ -3901,8 +3984,6 @@ graf_autori_po_sentimentu <- autori_po_sentimentu_data %>%
 
 graf_autori_po_sentimentu
 ```
-
-
 
 #### Top teme
 
@@ -3955,8 +4036,8 @@ graf_top_teme_kratko <- top_teme_data %>%
   ) +
   
   labs(
-    title = "Top 15 tema po ukupnoj medijskoj vrijednosti (€)",
-    subtitle = "Ukupna vrijednost objava po temi (nazivi skraćeni na max. 4 riječi)", # Ažuriran podnaslov
+    title = "Top 15 tema po ukupnoj  vrijednosti (€)",
+    subtitle = "", # Ažuriran podnaslov
     x = "Ukupna vrijednost (€)",
     y = "Tema"
   ) +
@@ -4051,10 +4132,10 @@ graf_teme_po_sentimentu <- teme_po_sentimentu_data %>%
   ) +
   
   labs(
-    title = "Vrijednost Top 15 Tema po Sentimentu",
-    subtitle = "Ukupna medijska vrijednost (€) raščlanjena po događajnoj orijentaciji",
+    title = "Vrijednost Top 15 tema",
+    subtitle = "",
     x = "Ukupna vrijednost (€)",
-    y = "Tema (skraćena na 4 riječi)",
+    y = "Tema",
     fill = "Sentiment:"
   )
 
@@ -4090,6 +4171,15 @@ Ovaj projekt je dizajniran da bude agilan i visoko kolaborativan.
 <br><br>
 **Kontakt:**
 
+-   [Repozitorij analize](https://github.com/lusiki/HNB-Media-Map)
+-   [Mapa medijskog ekosustava](https://raw.githack.com/lusiki/HNB-Media-Map/main/Mapa.html)
+-   [Anatomija diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme.html)
+-   [Atmosfera diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Diskurs.html)
+-   [Digitalni odjeci](https://raw.githack.com/lusiki/HNB-Media-Map/main/Doga%C4%91aji.html)
+-   [HNB osobe](https://raw.githack.com/lusiki/HNB-Media-Map/main/Imena.html)(*u razvoju*)
+-   [Teme](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme2.html)(*u razvoju*)
+<br><br><br><br>
 -   [Luka Šikić](https://www.unicath.hr/odjeli-i-fakultet/nastavnici/luka-sikic)
--   luka.sikic@unicath.hr
 -   [linkedin](https://www.linkedin.com/in/luka-sikic-662ba869/)
+-   Kontakt:luka.sikic@unicath.hr
+
