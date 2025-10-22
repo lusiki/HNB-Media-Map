@@ -3,21 +3,22 @@ title: "HNB u digitalnom medijskom prostoru (podatcima)"
 subtitle: "Prijedlog sustava za medijsko praćenje i analizu"
 author: "Luka Sikic, PhD"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
-format: 
+format:
   revealjs:
     theme: simple
-    logo: photo.jpg  # MAKE SURE 'photo.png' IS IN THE SAME FOLDER
+    logo: photo.jpg
     footer: "Projektni prijedlog za HNB"
     slide-number: c/t
     css: pptstyle.css
-    #self-contained: true # This is great for sharing
-    chalkboard: true # <-- REMOVED because it conflicts with self-contained
-    title-slide-attributes:
-      data-background-image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg"
-      data-background-size: cover
-      data-background-opacity: "0.5"
+    chalkboard: true
+    # --- MOVED THESE LINES ---
+    background-image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg"
+    background-size: cover
+    background-opacity: "0.5" # Adjust opacity (0.0 to 1.0) as needed
+    # --- Title slide attributes removed (or keep if you want different title settings) ---
+#    title-slide-attributes:
+#      # Keep specific title slide overrides here if needed
 ---
-
 
 ```{r setup, include=FALSE}
 # Load necessary packages for the presentation
@@ -2325,10 +2326,6 @@ ggplot() +
 ```
 
 
-
-
-
-
 #### Nesigurnost 
 
 - Izračunato prema [istraživanju](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf)
@@ -2471,15 +2468,13 @@ ggplot(epu_index_filtered, aes(x = month_date, y = epu_index)) +
 
 #### Druge ideje
 
-
-
 - [Komunikacija središnjih banaka I](https://www.nber.org/system/files/working_papers/w28592/w28592.pdf)
 
 - [Komunikacija središnjih banaka II](https://www.tandfonline.com/doi/pdf/10.1080/1406099X.2024.2303904?needAccess=true)
 
 - [Nowcasting](https://publications.banque-france.fr/sites/default/files/medias/documents/wp921.pdf)
 
-- [Međunarodna ekonomije](https://www.nber.org/system/files/working_papers/w25353/w25353.pdf)
+- [Međunarodna ekonomija](https://www.nber.org/system/files/working_papers/w25353/w25353.pdf)
 
 - [AI](https://www.bis.org/publ/arpdf/ar2024e3.pdf)
 
@@ -2491,7 +2486,7 @@ ggplot(epu_index_filtered, aes(x = month_date, y = epu_index)) +
 ## Prijedlog projekta
 
 <br>
-Kako iskoristiti postojeće podatke!
+Kako iskoristiti postojeće podatke?
 <br>
 
 ::: {.panel-tabset}
@@ -2503,6 +2498,10 @@ Presscut podatci za 08/2025; 190 objva i 15 karakteristika.
 #### Pojmovi 
 
 ```{r, mesage=FALSE, warning=FALSE}
+#| include: false 
+#| message: false # Good practice to keep, 
+#| warning: false # Good practice to keep
+
 library(readr)
 library(dplyr)
 library(ggplot2)
@@ -2544,6 +2543,11 @@ tryCatch({
 
 
 ```{r}
+#| include: false 
+#| message: false # Good practice to keep, 
+#| warning: false # Good practice to keep
+
+
 library(readr)
 library(dplyr)
 library(lubridate)
@@ -2832,7 +2836,6 @@ wordcloud(
 ```
 
 #### Teme
-
 
 ```{r lexicons, include=FALSE, eval=FALSE}
 # read in lexicons
@@ -3259,7 +3262,18 @@ heatmap_data <- dta_atmosphere %>%
   filter(n_articles > 1)
 ```
 
+:::
 
+---
+
+
+## Prijedlog projekta
+
+<br>
+Kako iskoristiti postojeće podatke?
+<br>
+
+::: {.panel-tabset}
 #### Uokvirivanje
 
 
@@ -3719,7 +3733,17 @@ p_volume_z
 p_cli_z
 ```
 
+:::
 
+---
+
+## Prijedlog projekta
+
+<br>
+Kako iskoristiti postojeće podatke?
+<br>
+
+::: {.panel-tabset}
 
 #### Platforme
 
@@ -4153,7 +4177,6 @@ graf_teme_po_sentimentu
 :::
 
 ---
-
 
 
 ## Potrebni resursi
