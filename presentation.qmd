@@ -4206,7 +4206,7 @@ Projekt mora biti agilan i visoko kolaborativan.
 -   [Digitalni odjeci](https://raw.githack.com/lusiki/HNB-Media-Map/main/Doga%C4%91aji.html)
 -   [HNB osobe](https://raw.githack.com/lusiki/HNB-Media-Map/main/Imena.html)(*u razvoju*)
 -   [Teme](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme2.html)(*u razvoju*)
-<br>
+<br><br>
 **Kontakt:**
 <br>
 -   [Luka Šikić](https://www.unicath.hr/odjeli-i-fakultet/nastavnici/luka-sikic)
