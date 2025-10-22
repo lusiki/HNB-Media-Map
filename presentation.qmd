@@ -11,13 +11,11 @@ format:
     slide-number: c/t
     css: pptstyle.css
     chalkboard: true
-    # --- MOVED THESE LINES ---
-    background-image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg"
-    background-size: cover
-    background-opacity: "0.5" # Adjust opacity (0.0 to 1.0) as needed
-    # --- Title slide attributes removed (or keep if you want different title settings) ---
-#    title-slide-attributes:
-#      # Keep specific title slide overrides here if needed
+    # Background image settings ONLY for the title slide
+    title-slide-attributes:
+      data-background-image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg"
+      data-background-size: cover
+      data-background-opacity: "0.5"
 ---
 
 ```{r setup, include=FALSE}
@@ -242,10 +240,12 @@ ggplot(
 ```
 
 
+
+
+
+```{r , eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
+
 #### Dnevno
-
-
-```{r}
 # --- 3. Dnevna deskriptivna statistika po platformi (uklj. varijabilnost) ---
 
 # KORAK 1: Dohvaćanje DNEVNIH zbrojeva iz baze podataka
