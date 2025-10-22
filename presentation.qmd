@@ -657,6 +657,7 @@ Dva svijeta HNB: Stručna rasprava vs. javna arena!
 <br>
 
 ::: {.panel-tabset}
+
 #### Koncept
 
 Analiza 20k medijskih objava o HNB pokazuje dva različita svijeta koji se rijetko dodiruju...sve dok ih ključna tema ne prisili na to. Inflacija, od monetarnog do medijskog fenomena!
@@ -1504,13 +1505,13 @@ ggplot(top_associated_words_final, aes(x = total_cooccurrences, y = reorder_with
 ## Operativna razina
 
 <br>
-Medijski podatci se mogu na 
+Komunikacijska strategija HNB-a koja ima uporište u podatcima!
 <br>
 
 ::: {.panel-tabset}
 #### Koncept
 
-Pregled 20k medijskih objava o HNB pokazuje 
+Nekoliko primjera...
 
 #### Gdje 
 ```{r load-data}
@@ -2080,17 +2081,21 @@ p_cli_z
 ---
 
 ## Istraživačka razina
+
 <br>
-Literatura o komunikaciji središnjih banaka je aktualna.
+[Literatura](https://www.sciencedirect.com/science/article/pii/S130307012500023X) o komunikaciji središnjih banaka je bogata i [aktualna](https://resolve.cambridge.org/core/journals/macroeconomic-dynamics/article/ecbs-central-bank-communication-and-monetary-policy-transmission-predictability-from-textbased-sentiment-indicators/9A8225BEFA56175C87F3FD7DA47DE35C)!
 <br>
-::: {.panel-tabset}
+
+:::{.panel-tabset}
+
 #### Koncept
 
 Nekoliko  je istraživačkih pravaca koji se ističu:
-[inflacija](https://www.ecb.europa.eu/press/conferences/ecbforum/shared/pdf/2025/EFCB_2025_Trebbi_Paper.pdf), nowcasting, [ekonomska politika](https ://www.policyuncertainty.com/media/EPU_BBD_Mar2016.pdf),[nesigurnost](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf), komunikacija sa ne-stručnjacima, komunikacija kao transmisijski kanal...
+[inflacija](https://www.ecb.europa.eu/press/conferences/ecbforum/shared/pdf/2025/EFCB_2025_Trebbi_Paper.pdf), nowcasting, [ekonomska politika](https ://www.policyuncertainty.com/media/EPU_BBD_Mar2016.pdf) i [nesigurnost](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf), [komunikacija sa ne-stručnjacima](https://www.sciencedirect.com/science/article/abs/pii/S0304393222000204), komunikacija kao transmisijski kanal...
 
-#### Inflacija I
-[Inflacijska očekivanja](https://archiv.ub.uni-heidelberg.de/volltextserver/34992/7/Arndt_dp748_2024.pdf)
+#### Inflacija 
+
+[Očekivanja](https://archiv.ub.uni-heidelberg.de/volltextserver/34992/7/Arndt_dp748_2024.pdf)
 
 [Komunikacija CB](https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp3047~cb0f0cf37f.en.pdf)
 
@@ -2113,7 +2118,8 @@ table_name <- "media_data"
 
 # Establish connection to the database
 con <- dbConnect(duckdb::duckdb(), dbdir = duckdb_file_path, read_only = TRUE)
-dbExecute(con, "SET memory_limit='16GB';")
+invisible(dbExecute(con, "SET memory_limit='16GB';"))
+
 ```
 
 
@@ -2186,6 +2192,7 @@ relative_data_by_source <- left_join(
   ) %>%
   filter(!is.na(relative_frequency) & total_posts > 50) # Filter out platforms with very low activity
 ```
+
 #### Inflacija I
 
 ```{r}
@@ -2221,7 +2228,7 @@ ggplot() +
   scale_fill_manual(name = "Spominjanje u objavi:", values = c("U naslovu" = "#C00000", "Samo u tekstu" = "#5B9BD5")) +
   scale_color_manual(name = NULL, values = c("Službena stopa inflacije" = "#003366")) +
   labs(
-    title = "Medijsko praćenje inflacije vs. službena stopa inflacije",
+    title = "Medijsko praćenje inflacije vs. službena stopa inflacije (apsolutno)",
     subtitle = "Usporedba apsolutnog broja medijskih objava i stvarne stope inflacije",
     x = "Godina", y = "Broj medijskih objava"
   ) +
@@ -2263,7 +2270,7 @@ ggplot() +
   scale_fill_manual(name = "Spominjanje u objavi:", values = c("U naslovu" = "#C00000", "Samo u tekstu" = "#5B9BD5")) +
   scale_color_manual(name = NULL, values = c("Službena stopa inflacije" = "#003366")) +
   labs(
-    title = "Relativna učestalost praćenja inflacije vs. službena stopa inflacije",
+    title = "Medijsko praćenje inflacije vs. službena stopa inflacije (relativno)",
     subtitle = "Usporedba udjela medijskih objava o inflaciji i stvarne stope inflacije",
     x = "Godina", y = "Udio objava o inflaciji"
   ) +
@@ -2344,8 +2351,7 @@ table_name <- "media_data"
 
 # Establish connection to the database
 con <- dbConnect(duckdb::duckdb(), dbdir = duckdb_file_path, read_only = TRUE)
-dbExecute(con, "SET memory_limit='16GB';")
-
+invisible(dbExecute(con, "SET memory_limit='16GB';"))
 
 
 
@@ -2461,7 +2467,7 @@ ggplot(epu_index_filtered, aes(x = month_date, y = epu_index)) +
 
 ```
 
-
+---
 
 #### Druge ideje
 
@@ -2489,6 +2495,7 @@ Kako iskoristiti postojeće podatke!
 <br>
 
 ::: {.panel-tabset}
+
 #### Koncept
 
 Presscut podatci za 08/2025; 190 objva i 15 karakteristika.
@@ -4169,18 +4176,22 @@ Ovaj projekt je dizajniran da bude agilan i visoko kolaborativan.
 ---
 
 ## Umjesto zaključka./ Pitanja?
-<br><br>
-**Kontakt:**
+<br>
+**Analiza:**
 
--   [Repozitorij analize](https://github.com/lusiki/HNB-Media-Map)
+-   [Repozitorij](https://github.com/lusiki/HNB-Media-Map)
 -   [Mapa medijskog ekosustava](https://raw.githack.com/lusiki/HNB-Media-Map/main/Mapa.html)
 -   [Anatomija diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme.html)
 -   [Atmosfera diskursa](https://raw.githack.com/lusiki/HNB-Media-Map/main/Diskurs.html)
 -   [Digitalni odjeci](https://raw.githack.com/lusiki/HNB-Media-Map/main/Doga%C4%91aji.html)
 -   [HNB osobe](https://raw.githack.com/lusiki/HNB-Media-Map/main/Imena.html)(*u razvoju*)
 -   [Teme](https://raw.githack.com/lusiki/HNB-Media-Map/main/Teme2.html)(*u razvoju*)
-<br><br><br><br>
+<br>
+
+**Kontakt:**
+<br>
 -   [Luka Šikić](https://www.unicath.hr/odjeli-i-fakultet/nastavnici/luka-sikic)
+<br>
 -   [linkedin](https://www.linkedin.com/in/luka-sikic-662ba869/)
--   Kontakt:luka.sikic@unicath.hr
+-   luka.sikic@unicath.hr
 
