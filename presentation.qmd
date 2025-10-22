@@ -1,6 +1,6 @@
 ---
 title: "HNB u digitalnom medijskom prostoru (podatcima)"
-subtitle: "Prijedlog sustava za medijsko praćenje (u realnom vremenu)"
+subtitle: "Prijedlog sustava za medijsko praćenje i analizu"
 author: "Luka Sikic, PhD"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 format: 
@@ -111,9 +111,9 @@ platform_color_mapping <- c(
 
 ## Digitalni medijski prostor RH
 
-<br><br>
+<br>
 [Digitalni medijski prostor](https://raw.githack.com/lusiki/Medijska-matrica/main/docs/chapters/02-metodologija.html) sve je važniji dio [medijskog prostora u Hrvatskoj](https://reutersinstitute.politics.ox.ac.uk/digital-news-report/2025/croatia).
-<br><br>
+<br>
 
 ::: {.panel-tabset}
 #### Koncept
@@ -652,8 +652,8 @@ ggplot(monthly_full_trends, aes(x = month)) +
 ---
 
 ## Strateška razina
-<br><br>  
-Dva svijeta HNB: Stručna rasprava vs javna arena! 
+<br> 
+Dva svijeta HNB: Stručna rasprava vs. javna arena! 
 <br>
 
 ::: {.panel-tabset}
@@ -1503,9 +1503,9 @@ ggplot(top_associated_words_final, aes(x = total_cooccurrences, y = reorder_with
 
 ## Operativna razina
 
-<br><br>
+<br>
 Medijski podatci se mogu na 
-
+<br>
 
 ::: {.panel-tabset}
 #### Koncept
@@ -1875,9 +1875,7 @@ ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_se
 
 
 
-
-
-#### Događaji
+#### Događaji I
 
 
 ```{r}
@@ -2071,7 +2069,7 @@ p_cli_z <- ggplot(spikes_detected_z, aes(x = date, y = z_score_cli)) +
 p_volume_z
 ```
 
-
+#### Događaji II
 
 ```{r}
 p_cli_z
@@ -2082,8 +2080,8 @@ p_cli_z
 ---
 
 ## Istraživačka razina
-<br><br>
-Literatura o komunikaciji središnjih banaka je značajna i vrlo aktualna.
+<br>
+Literatura o komunikaciji središnjih banaka je aktualna.
 <br>
 ::: {.panel-tabset}
 #### Koncept
@@ -2092,11 +2090,11 @@ Nekoliko  je istraživačkih pravaca koji se ističu:
 [inflacija](https://www.ecb.europa.eu/press/conferences/ecbforum/shared/pdf/2025/EFCB_2025_Trebbi_Paper.pdf), nowcasting, [ekonomska politika](https ://www.policyuncertainty.com/media/EPU_BBD_Mar2016.pdf),[nesigurnost](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf), komunikacija sa ne-stručnjacima, komunikacija kao transmisijski kanal...
 
 #### Inflacija I
-[i](https://archiv.ub.uni-heidelberg.de/volltextserver/34992/7/Arndt_dp748_2024.pdf)
+[Inflacijska očekivanja](https://archiv.ub.uni-heidelberg.de/volltextserver/34992/7/Arndt_dp748_2024.pdf)
 
-[ii](https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp3047~cb0f0cf37f.en.pdf)
+[Komunikacija CB](https://www.ecb.europa.eu/pub/pdf/scpwps/ecb.wp3047~cb0f0cf37f.en.pdf)
 
-[iii](https://www.rba.gov.au/publications/bulletin/2024/jan/inflation-expectations-and-economic-literacy.html)
+[Financijska pismenost](https://www.rba.gov.au/publications/bulletin/2024/jan/inflation-expectations-and-economic-literacy.html)
 
 
 ```{r}
@@ -2121,7 +2119,7 @@ dbExecute(con, "SET memory_limit='16GB';")
 
 ```{r}
 # --- 1. DOWNLOAD EUROSTAT INFLATION DATA ---
-cat("Downloading inflation data from Eurostat...\n")
+#cat("Downloading inflation data from Eurostat...\n")
 hicp_data <- get_eurostat(id = "prc_hicp_midx", filters = list(geo = "HR", coicop = "CP00", unit = "I15"))
 inflation_data <- hicp_data %>%
   arrange(time) %>%
@@ -2129,7 +2127,7 @@ inflation_data <- hicp_data %>%
   filter(!is.na(inflation_rate))
 
 # --- 2. RETRIEVE AND PROCESS MEDIA DATA (OVERALL) ---
-cat("Aggregating overall media data...\n")
+#cat("Aggregating overall media data...\n")
 # Query for total posts and total inflation mentions per month
 sql_totals <- "SELECT STRFTIME(DATETIME, '%Y-%m') AS year_month, COUNT(*) AS total_posts FROM media_data GROUP BY year_month"
 inflation_trends <- dbGetQuery(con, sql_totals)
@@ -2143,7 +2141,7 @@ sql_location <- "
 inflation_location_counts <- dbGetQuery(con, sql_location)
 
 # --- 3. RETRIEVE AND PROCESS MEDIA DATA (BY SOURCE TYPE) ---
-cat("Aggregating media data by source type...\n")
+#cat("Aggregating media data by source type...\n")
 # Query for total posts per month AND per source type
 sql_totals_by_source <- "
   SELECT STRFTIME(DATETIME, '%Y-%m') AS year_month, SOURCE_TYPE, COUNT(*) AS total_posts
@@ -2160,7 +2158,7 @@ inflation_location_by_source <- dbGetQuery(con, sql_location_by_source)
 
 # All data is retrieved, we can now close the connection
 dbDisconnect(con, shutdown = TRUE)
-cat("Database connection closed.\n")
+#cat("Database connection closed.\n")
 
 
 # --- 4. CREATE FINAL ANALYSIS DATASETS ---
@@ -2188,7 +2186,7 @@ relative_data_by_source <- left_join(
   ) %>%
   filter(!is.na(relative_frequency) & total_posts > 50) # Filter out platforms with very low activity
 ```
-#### INFLACIJA I
+#### Inflacija I
 
 ```{r}
 # -- Filter and Scale Data for this specific plot --
@@ -2232,7 +2230,7 @@ ggplot() +
 ```
 
 
-#### INFLACIJA II
+#### Inflacija II
 
 ```{r}
 # -- Filter and Scale Data for this specific plot --
@@ -2274,7 +2272,7 @@ ggplot() +
 ```
 
 
-#### INFLACIJA III
+#### Inflacija III
 
 ```{r}
 # -- Filter and Scale Data for this specific plot --
@@ -2326,7 +2324,7 @@ ggplot() +
 
 #### Nesigurnost 
 
-- [*](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf)
+- Izračunato prema [istraživanju](https://www.nber.org/system/files/working_papers/w22740/w22740.pdf)
 
 
 ```{r}
@@ -2408,9 +2406,9 @@ sql_query_epu <- sprintf("
   ORDER BY year_month;
 ", e_condition, p_condition, u_condition, table_name)
 
-cat("Executing EPU query... This may take some time depending on database size.\n")
+#cat("Executing EPU query... This may take some time depending on database size.\n")
 epu_counts <- dbGetQuery(con, sql_query_epu)
-cat("Data successfully retrieved.\n")
+#cat("Data successfully retrieved.\n")
 
 
 # --- 4. INDEX CALCULATION ---
@@ -2432,7 +2430,7 @@ epu_index_data <- epu_counts %>%
   # Filter to the main period of analysis for a stable index
   filter(year(month_date) >= 2021 & year(month_date) <= 2024)
 
-cat("EPU Index calculated successfully.\n")
+#cat("EPU Index calculated successfully.\n")
 
 
 # --- 5. VISUALIZATION ---
@@ -2486,6 +2484,10 @@ ggplot(epu_index_filtered, aes(x = month_date, y = epu_index)) +
 
 ## Prijedlog projekta
 
+<br>
+Kako iskoristiti postojeće podatke!
+<br>
+
 ::: {.panel-tabset}
 #### Koncept
 
@@ -2531,7 +2533,6 @@ tryCatch({
 
 
 ```
-
 
 
 
@@ -4162,7 +4163,7 @@ Ovaj projekt je dizajniran da bude agilan i visoko kolaborativan.
 
 #### Podatci
 -   Cijeli medijski prostor.
--   Povijesni medijski podaatci o HNB.
+-   Povijesni medijski podatci o HNB.
 
 
 ---
