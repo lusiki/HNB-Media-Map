@@ -233,69 +233,6 @@ ggplot(
     y = "Tip platforme"
   ) +
   
-  # Final theme tweaks for a cleaner look
-  theme(
-    panel.grid.major.y = element_blank(), # Remove horizontal grid lines for focus
-    panel.grid.minor.x = element_blank()
-  )
-
-
-```
-
-#### Proba
-
-```{r}
-
-#| echo: false
-#| message: false
-#| warning: false
-
-# ... (Vaš kod za učitavanje paketa i podataka ostaje isti) ...
-# --- Povezivanje s DuckDB bazom podataka ---
-# ... (Vaš kod za povezivanje i upit ostaje isti) ...
-# --- 2. Dominacija platformi ... ---
-# ... (Vaš kod za dohvaćanje platform_overview_ultimate ostaje isti) ...
-
-# --- Definicija palete boja (iz vašeg setup chunka) ---
-platform_color_mapping <- c(
-  "web"       = "#003366", # Dark Blue
-  "facebook"  = "#5B9BD5", # Medium Blue
-  "comment"   = "#C00000", # Accent Red
-  "twitter"   = "#BF8F00", # Accent Gold
-  "forum"     = "#005F56", # Dark Green
-  "youtube"   = "#7F7F7F", # Medium Grey
-  "reddit"    = "#A0522D", # Muted Sienna
-  "instagram" = "#5D478B", # Deep Slate Purple (Add if needed)
-  "tiktok"    = "#8A798C"  # Muted Mauve (Add if needed)
-  # Ensure all platforms from your data are here
-)
-
-
-# Vizualizacija 1: Ukupan broj objava po platformi (General Overview - Posts per Platform)
-ggplot(
-  platform_overview_ultimate,
-  aes(x = num_posts, y = reorder(SOURCE_TYPE, num_posts), fill = SOURCE_TYPE)
-) +
-  geom_col() +
-  geom_text(
-    aes(label = scales::comma(num_posts, accuracy = 1)),
-    hjust = -0.1, # Position text slightly outside the bar
-    size = 3.5    # Adjust size as needed
-  ) +
-  scale_fill_manual(values = platform_color_mapping) +
-  scale_x_continuous(
-    labels = scales::comma,
-    expand = expansion(mult = c(0.01, 0.15)) # Expand axis to fit text labels
-  ) +
-  guides(fill = "none") + # Hide legend as colors are mapped to axis labels
-  labs(
-    title = "Ukupan broj objava po platformi",
-    subtitle = "",
-    x = "Broj objava",
-    y = "Tip platforme" # Y-axis label
-  ) +
-
-  # --- Minimalist Theme with Transparent Background ---
   theme_minimal(base_size = 14) +
   theme(
     # --- SET BACKGROUNDS TO MATCH SLIDE ---
@@ -326,8 +263,9 @@ ggplot(
     # axis.text = element_text(color = "black"),
     # axis.title = element_text(color = "black")
   )
-# ------------------------------------------------------------------------
+
 ```
+
 
 
 ```{r , eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
