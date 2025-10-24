@@ -11,6 +11,7 @@ format:
     slide-number: c/t
     css: pptstyle.css
     chalkboard: true
+    background-color: "#F5F5F5"
     # Background image settings ONLY for the title slide
     title-slide-attributes:
       data-background-image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3b/Croatian_National_Bank.jpg/500px-Croatian_National_Bank.jpg"
@@ -18,7 +19,8 @@ format:
       data-background-opacity: "0.5"
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=T}
+
 # Load necessary packages for the presentation
 library(scales)#
 #library(patchwork)
@@ -129,6 +131,7 @@ Podatci uključuju:
 
 #### Objave
 ```{r plot1, echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 # Učitavanje potrebnih paketa
 required_packages <- c(
   "duckdb",       # Za efikasno upravljanje podacima slično bazi podataka
@@ -239,12 +242,96 @@ ggplot(
 
 ```
 
+#### Proba
+
+```{r}
+
+#| echo: false
+#| message: false
+#| warning: false
+
+# ... (Vaš kod za učitavanje paketa i podataka ostaje isti) ...
+# --- Povezivanje s DuckDB bazom podataka ---
+# ... (Vaš kod za povezivanje i upit ostaje isti) ...
+# --- 2. Dominacija platformi ... ---
+# ... (Vaš kod za dohvaćanje platform_overview_ultimate ostaje isti) ...
+
+# --- Definicija palete boja (iz vašeg setup chunka) ---
+platform_color_mapping <- c(
+  "web"       = "#003366", # Dark Blue
+  "facebook"  = "#5B9BD5", # Medium Blue
+  "comment"   = "#C00000", # Accent Red
+  "twitter"   = "#BF8F00", # Accent Gold
+  "forum"     = "#005F56", # Dark Green
+  "youtube"   = "#7F7F7F", # Medium Grey
+  "reddit"    = "#A0522D", # Muted Sienna
+  "instagram" = "#5D478B", # Deep Slate Purple (Add if needed)
+  "tiktok"    = "#8A798C"  # Muted Mauve (Add if needed)
+  # Ensure all platforms from your data are here
+)
 
 
+# Vizualizacija 1: Ukupan broj objava po platformi (General Overview - Posts per Platform)
+ggplot(
+  platform_overview_ultimate,
+  aes(x = num_posts, y = reorder(SOURCE_TYPE, num_posts), fill = SOURCE_TYPE)
+) +
+  geom_col() +
+  geom_text(
+    aes(label = scales::comma(num_posts, accuracy = 1)),
+    hjust = -0.1, # Position text slightly outside the bar
+    size = 3.5    # Adjust size as needed
+  ) +
+  scale_fill_manual(values = platform_color_mapping) +
+  scale_x_continuous(
+    labels = scales::comma,
+    expand = expansion(mult = c(0.01, 0.15)) # Expand axis to fit text labels
+  ) +
+  guides(fill = "none") + # Hide legend as colors are mapped to axis labels
+  labs(
+    title = "Ukupan broj objava po platformi",
+    subtitle = "",
+    x = "Broj objava",
+    y = "Tip platforme" # Y-axis label
+  ) +
+
+  # --- Minimalist Theme with Transparent Background ---
+  theme_minimal(base_size = 14) +
+  theme(
+    # --- SET BACKGROUNDS TO MATCH SLIDE ---
+    plot.background = element_rect(fill = "#F5F5F5", color = NA), # Use the chosen light gray, NA removes border
+    panel.background = element_rect(fill = "#F5F5F5", color = NA), # Use the chosen light gray, NA removes border
+    # ------------------------------------
+
+    # Remove grid lines for minimalism
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+
+    # Remove panel border
+    panel.border = element_blank(),
+
+    # Adjust axis lines if desired (e.g., slightly darker gray or white)
+    axis.line = element_line(color = "grey70", linewidth = 0.5), # Or element_blank()
+
+    # Remove axis ticks
+    axis.ticks = element_blank(),
+
+    # Align y-axis text
+    axis.text.y = element_text(hjust = 1)
+
+    # --- IMPORTANT FOR LIGHT BACKGROUNDS ---
+    # Ensure text colors are dark enough to be readable
+    # You might need to adjust text colors if the default is too light
+    # plot.title = element_text(color = "black"),
+    # axis.text = element_text(color = "black"),
+    # axis.title = element_text(color = "black")
+  )
+# ------------------------------------------------------------------------
+```
 
 
 ```{r , eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE}
-
+#| cache: true
 #### Dnevno
 # --- 3. Dnevna deskriptivna statistika po platformi (uklj. varijabilnost) ---
 
@@ -323,6 +410,7 @@ kable(desc_stats_table,
 
 #### Interakcije
 ```{r , echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 # Vizualizacija 2: Ukupne interakcije po platformi (General Overview - Interactions per Platform)
 ggplot(
   platform_overview_ultimate, 
@@ -370,6 +458,7 @@ ggplot(
 
 #### Efikasnost I
 ```{r , echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 # --- 2. THE REVISED GGPLOT CODE FOR TOTAL REACH ---
 # Assuming your data is named 'platform_overview_ultimate'
 ggplot(
@@ -416,6 +505,7 @@ ggplot(
 
 #### Efikasnost II
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 # --- 1. THE COLOR MAPPING (Should already be defined in your script) ---
 # Reusing this ensures a consistent visual identity across all your plots.
 platform_color_mapping <- c(
@@ -562,6 +652,7 @@ plot_ly(
 
 #### Dinamika
 ```{r , echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 monthly_full_trends <- dbGetQuery(con, paste0("
   SELECT
     strftime(DATETIME, '%Y-%m') AS month_label,
@@ -663,6 +754,8 @@ Analiza 20k medijskih objava o HNB pokazuje dva različita svijeta koji se rijet
 
 #### Interakcije
 ```{r plot22, echo=FALSE, message=FALSE, warning=FALSE}
+library(dplyr)
+library(stringr)
 
 # --- Priprema podataka (izvršava se u pozadini) ---
 
@@ -906,7 +999,7 @@ dta_with_themes2 <- bind_cols(dta, theme_analysis_data2)
 
 
 ```{r}
-
+#| cache: true
 
 topic_palette <- c(
   "#003366",  # Dark Blue
@@ -955,6 +1048,7 @@ ggplot(engagement_by_topic,
 #### Interakcije II
 
 ```{r}
+#| cache: true
 engagement_by_topic2 <- dta_enriched2 %>%
   filter(dominant_topic != "Nema Teme") %>%
   group_by(dominant_topic) %>%
@@ -1008,6 +1102,7 @@ ggplot(engagement_by_topic2,
 #### Centralnost
 
 ```{r plot3, echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 thematic_intensity_data2 <- dta_enriched2 %>%
   select(starts_with("norm_")) %>%
   pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
@@ -1052,6 +1147,7 @@ ggplot(thematic_intensity_data2,
 #### Mreža
 
 ```{r lexicons_, echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 # read in lexicons
 CroSentilex_n <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
                                    header = FALSE,
@@ -1135,6 +1231,7 @@ nrc_lexicon_long_ <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean
 ```
 
 ```{r load-lexicons_, echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 # --- FAZA 1: UČITAVANJE I PRIPREMA SVIH LEKSIKONA ---
 # Ovaj chunk učitava sve potrebne jezične resurse i pretvara ih u "uredan" (tidy)
 # format spreman za spajanje s lingvističkim podacima.
@@ -1206,6 +1303,7 @@ nrc_lexicon_long <- nrc_lexicon_raw %>%
 ```
 
 ```{r , echo=FALSE, message=FALSE, warning=FALSE}
+#| cache: true
 # --- MODUL ZA MREŽU NARATIVNE ATMOSFERE (ISPRAVLJENA I POBOLJŠANA VERZIJA) ---
 library(widyr)
 library(ggraph)
@@ -1380,6 +1478,7 @@ graph_from_data_frame(graph_data, directed = FALSE) %>%
 
 
 ```{r}
+#| cache: true
 
 
 lemmatized_words_with_freq <- nlp_results_df %>%
@@ -1449,6 +1548,7 @@ dta_final <- dta_temp %>%
 
 
 ```{r narrative-biography-robust, fig.height=9}
+#| cache: true
 # --- KOD ZA "ŽIVOTOPIS" MONETARNOG NARATIVA (ROBUSNA VERZIJA) ---
 
 # (Koraci 1 i 2 - pronalaženje dokumenata i izdvajanje konteksta)
@@ -1513,6 +1613,7 @@ Nekoliko primjera...
 
 #### Gdje 
 ```{r load-data}
+#| cache: true
 # load only the pre-computed tables
 platform_summary        <- readRDS("./platform_summary.rds")
 proportions_summary     <- readRDS("./proportions_summary.rds")
@@ -1532,6 +1633,14 @@ facebook_actors         <- readRDS("./facebook_actors.rds")
 
 
 ```{r}
+
+#| cache: true
+
+
+
+library(ggplot2)
+
+
 
 platform_color_mapping <- c(
   "web"       = "#003366",  # HNB Dark Blue
@@ -1579,6 +1688,7 @@ print(plot_volume)
 #### Gdje II
 
 ```{r}
+#| cache: true
 # Now, the adjusted ggplot code
 plot_interactions <- platform_summary %>%
   filter(total_interactions > 0) %>%
@@ -1663,6 +1773,7 @@ print(plot_reach)
 #### Važnost
 
 ```{r}
+#| cache: true
 
 plot_share_posts <- proportions_summary %>%
   mutate(SOURCE_TYPE = tolower(trimws(SOURCE_TYPE))) %>%
@@ -1719,6 +1830,8 @@ print(plot_combined_share)
 
 
 ```{r plot-lollipops-interactions, fig.width=13, fig.height=10, dpi=500}
+#| cache: true
+
 create_top_source_plot <- function(data, platform_name, platform_color) {
   data <- data %>% arrange(total_interactions) %>% mutate(FROM = factor(FROM, levels = FROM))
   ggplot(data, aes(x = FROM, y = total_interactions)) +
@@ -2101,6 +2214,7 @@ Nekoliko  je istraživačkih pravaca koji se ističu:
 
 
 ```{r}
+#| cache: true
 # --- 0. SETUP: Load Libraries and Connect to Database ---
 library(duckdb)
 library(dplyr)
@@ -2122,6 +2236,7 @@ invisible(dbExecute(con, "SET memory_limit='16GB';"))
 
 
 ```{r}
+#| cache: true
 # --- 1. DOWNLOAD EUROSTAT INFLATION DATA ---
 #cat("Downloading inflation data from Eurostat...\n")
 hicp_data <- get_eurostat(id = "prc_hicp_midx", filters = list(geo = "HR", coicop = "CP00", unit = "I15"))
@@ -2194,6 +2309,8 @@ relative_data_by_source <- left_join(
 #### Inflacija I
 
 ```{r}
+
+#| cache: true
 # -- Filter and Scale Data for this specific plot --
 media_absolute_filtered <- inflation_location_long %>% filter(year(month_date) >= 2021)
 last_media_date <- max(media_absolute_filtered$month_date)
@@ -2238,6 +2355,7 @@ ggplot() +
 #### Inflacija II
 
 ```{r}
+#| cache: true
 # -- Filter and Scale Data for this specific plot --
 media_relative_filtered <- relative_data %>% filter(year(month_date) >= 2021)
 last_media_date <- max(media_relative_filtered$month_date)
@@ -2280,6 +2398,8 @@ ggplot() +
 #### Inflacija III
 
 ```{r}
+
+#| cache: true
 # -- Filter and Scale Data for this specific plot --
 media_faceted_filtered <- relative_data_by_source %>% filter(year(month_date) >= 2021)
 last_media_date <- max(media_faceted_filtered$month_date)
@@ -2329,7 +2449,7 @@ ggplot() +
 
 
 ```{r}
-
+#| cache: true
 
 library(duckdb)
 library(dplyr)
@@ -2498,6 +2618,8 @@ Presscut podatci za 08/2025; 190 objva i 15 karakteristika.
 #| include: false 
 #| message: false # Good practice to keep, 
 #| warning: false # Good practice to keep
+#| cache: true
+
 
 library(readr)
 library(dplyr)
@@ -2543,7 +2665,7 @@ tryCatch({
 #| include: false 
 #| message: false # Good practice to keep, 
 #| warning: false # Good practice to keep
-
+#| cache: true
 
 library(readr)
 library(dplyr)
@@ -2718,6 +2840,7 @@ dta_with_themes2 <- bind_cols(dta, theme_analysis_data2)
 
 
 ```{r}
+#| cache: true
 files <- list.files("C:/Users/lukas/Determbaza/Language model sample II", full.names = TRUE, pattern = "\\.rds")
 nlp_results_df <- lapply(files, readRDS) %>%
   bind_rows() %>%
@@ -2835,6 +2958,7 @@ wordcloud(
 #### Teme
 
 ```{r lexicons, include=FALSE, eval=FALSE}
+#| cache: true
 # read in lexicons
 CroSentilex_n <- read.delim("C:/Users/Lukas/Dropbox/Mislav@Luka/crosentilex-negatives.txt",
                                    header = FALSE,
@@ -2917,6 +3041,7 @@ nrc_lexicon_long_ <- read_excel("C:/Users/Lukas/Dropbox/Mislav@Luka/lilaHR_clean
 
 
 ```{r load-lexicons}
+#| cache: true
 # --- FAZA 1: UČITAVANJE I PRIPREMA SVIH LEKSIKONA ---
 # Ovaj chunk učitava sve potrebne jezične resurse i pretvara ih u "uredan" (tidy)
 # format spreman za spajanje s lingvističkim podacima.
@@ -2990,6 +3115,7 @@ nrc_lexicon_long <- nrc_lexicon_raw %>%
 
 
 ```{r}
+#| cache: true
 thematic_intensity_data2 <- dta_enriched2 %>%
   select(starts_with("norm_")) %>%
   pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
@@ -3012,6 +3138,7 @@ ggplot(thematic_intensity_data2, aes(x = intensity, y = fct_reorder(topic, inten
 #### Teme II
 
 ```{r plot-topic-intensity}
+#| cache: true
 thematic_intensity_data <- dta_enriched %>%
   select(starts_with("norm_")) %>%
   pivot_longer(everything(), names_to = "topic", values_to = "intensity") %>%
@@ -3034,7 +3161,7 @@ ggplot(thematic_intensity_data, aes(x = intensity, y = fct_reorder(topic, intens
 #### Teme III
 
 ```{r}
-
+#| cache: true
 topic_palette <- c(
   "#003366",  # Dark Blue
   "#5B9BD5",  # Medium Blue
@@ -3101,6 +3228,7 @@ graf_teme_avg_vrijednost
 
 
 ```{r}
+#| cache: true
 engagement_by_topic2 <- dta_enriched_people %>%
   filter(dominant_topic != "Nema Teme") %>%
   group_by(dominant_topic) %>%
@@ -3153,6 +3281,8 @@ graf_akteri_avg_vrijednost
 
 
 ```{r plot-topic-network, fig.height=10}
+
+#| cache: true
 # Ovaj kod je iz vašeg RMD-a, samo ga prikazujemo ovdje.
 topic_pairs <- dta_enriched %>%
   select(doc_id, starts_with("norm_")) %>%
@@ -3183,6 +3313,7 @@ topic_pairs %>%
 
 
 ```{r emotional-analysis, include=FALSE, eval=T}
+#| cache: true
 # --- Izračuni za dvoslojnu analizu (izvršava se u pozadini) ---
 
 # Sloj 1: Sentiment Score (CroSentilex)
@@ -3276,7 +3407,7 @@ Kako iskoristiti postojeće podatke?
 
 ```{r plot-emotion-heatmap, fig.width=10, fig.height=6, echo=FALSE}
 
-
+#| cache: true
 
 ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_sentiment)) +
   geom_tile(color = "white", linewidth = 0.5) +
@@ -3294,6 +3425,8 @@ ggplot(heatmap_data, aes(x = dominant_emotion, y = dominant_topic, fill = avg_se
 
 
 ```{r rci-calculation, include=FALSE}
+
+#| cache: true
 # --- Izračuni za RCI (izvršava se u pozadini) ---
 conflict_lexicon <- nrc_lexicon_long %>% 
   filter(emotion %in% c("Ljutnja", "Gađenje")) %>% 
@@ -3354,6 +3487,8 @@ dta_atmosphere <- dta_atmosphere %>%
 
 
 ```{r}
+
+#| cache: true
 # --- MODUL ZA MAPU MEDIJSKIH STRATEGIJA (ISPRAVLJENA VERZIJA) ---
 
 # Izračun CLI-a (ostaje isto)
@@ -3424,6 +3559,8 @@ ggplot(media_strategy_data, aes(x = avg_cli, y = rci_sd, size = n_articles)) + #
 #### Narativi
 
 ```{r figure=TRUE, fig.width=12, fig.height=10, warning=FALSE, message=FALSE}
+
+#| cache: true
 # --- MODUL ZA MREŽU NARATIVNE ATMOSFERE (ISPRAVLJENA I POBOLJŠANA VERZIJA) ---
 library(widyr)
 library(ggraph)
@@ -3598,6 +3735,8 @@ graph_from_data_frame(graph_data, directed = FALSE) %>%
 #### Dinamika I
 
 ```{r anomaly-detection, eval= T, message=FALSE, warning=FALSE}
+
+#| cache: true
 # --- KOD ZA DETEKCIJU ANOMALIJA (POBOLJŠANA VERZIJA) ---
 daily_summary <- dta_final %>%
   mutate(date = as.Date(DATE)) %>%
@@ -3640,6 +3779,7 @@ p_cli <- ggplot(spikes_detected, aes(x = date, y = avg_cli)) +
 
 
 ```{r standardized-anomaly-detection_}
+#| cache: true
 # --- KOD ZA STANDARDIZIRANU DETEKCIJU ANOMALIJA ---
 
 # Agregiramo podatke po danu
@@ -3745,6 +3885,8 @@ Kako iskoristiti postojeće podatke?
 #### Platforme
 
 ```{r}
+
+#| cache: true
 df_clean <- df %>%
   # Pretvaramo 'Vrijednost €' u numeričku vrijednost.
   mutate(Vrijednost_EUR = as.numeric(`Vrijednost €`)) %>%
@@ -4086,6 +4228,8 @@ graf_top_teme_kratko
 
 
 ```{r}
+
+#| cache: true
 sentiment_palette <- c(
   "Negativna" = "#C00000",  # Accent Red
   "Pozitivna" = "#005F56",  # Dark Green
